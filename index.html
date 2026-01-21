@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>イヌくんランナー - お散歩コース</title>
+    <title>わんわんランナー - 静かに避けろ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -20,8 +20,8 @@
             width: 100%;
             max-width: 600px;
             height: 350px;
-            background-color: #87ceeb; /* Sky blue fallback */
-            border-bottom: 15px solid #71717a; /* Asphalt road edge */
+            background-color: #87ceeb;
+            border-bottom: 15px solid #71717a;
             overflow: hidden;
             border-radius: 12px;
         }
@@ -49,27 +49,34 @@
             align-items: center;
             justify-content: center;
             z-index: 30;
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.75);
             text-align: center;
         }
         canvas {
             display: block;
         }
         .blink {
-            animation: blink 1.5s infinite;
+            animation: blink 1s infinite;
         }
         @keyframes blink {
             0% { opacity: 1; }
             50% { opacity: 0.1; }
             100% { opacity: 1; }
         }
+        .new-record-anim {
+            animation: bounce 0.5s infinite alternate;
+        }
+        @keyframes bounce {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center p-4">
 
     <div class="mb-4 text-center pointer-events-none">
-        <h1 class="text-3xl font-extrabold text-blue-900">イヌくんランナー</h1>
-        <p class="text-blue-700">お散歩コースを駆け抜けよう！</p>
+        <h1 class="text-3xl font-extrabold text-blue-900">わんわんランナー</h1>
+        <p class="text-blue-700 text-sm">ハイスコアを目指してお散歩しよう</p>
     </div>
 
     <div id="game-container" class="shadow-2xl">
@@ -78,20 +85,31 @@
             <div id="highscore">BEST: 0</div>
         </div>
         
-        <!-- Start Screen -->
+        <!-- スタート画面 -->
         <div id="start-screen" class="overlay">
-            <div class="text-6xl mb-4">🐕</div>
-            <h2 class="text-2xl font-bold text-green-900 mb-8">お散歩スタート！</h2>
-            <p class="text-xl font-bold text-gray-700 blink">画面をタッチして走る</p>
-            <p class="mt-4 text-sm text-gray-600">お肉を避けて進もう！🍖</p>
+            <div class="flex items-center gap-4 mb-4">
+                <div class="text-6xl">🐕</div>
+                <div class="text-3xl text-red-500">vs</div>
+                <div class="flex gap-2 text-5xl">
+                    <span>🐕‍🦺</span>
+                    <span>🦅</span>
+                </div>
+            </div>
+            <h2 class="text-2xl font-bold text-green-900 mb-6">お散歩スタート</h2>
+            <div class="text-center">
+                <p class="text-xl font-bold text-gray-700 blink">画面をタップして開始</p>
+                <p class="mt-2 text-orange-600 font-bold">（2段ジャンプができるよ！）</p>
+            </div>
         </div>
 
-        <!-- Game Over Screen -->
+        <!-- ゲームオーバー画面 -->
         <div id="gameover-screen" class="overlay" style="display: none;">
-            <h2 class="text-3xl font-bold text-red-600 mb-2">休憩タイム！</h2>
-            <p id="final-score" class="text-xl mb-6 text-gray-700"></p>
+            <div id="new-record-label" class="text-3xl font-black text-red-600 mb-2 new-record-anim hidden">✨新記録達成！✨</div>
+            <div id="gameover-icon" class="text-6xl mb-4">💢🐕‍🦺</div>
+            <h2 id="gameover-text" class="text-2xl font-bold text-gray-800 mb-1">ウゥーッ！ガブッ！</h2>
+            <p id="final-score" class="text-xl mb-6 text-gray-700 font-bold"></p>
             <div class="flex flex-col gap-3 w-64">
-                <button id="retry-btn" class="bg-green-600 text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-green-700 transition shadow-lg">もう一度走る</button>
+                <button id="retry-btn" class="bg-green-600 text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-green-700 transition shadow-lg">もう一度お散歩する</button>
                 <button id="share-btn" class="bg-sky-400 text-white px-8 py-2 rounded-full font-bold text-sm hover:bg-sky-500 transition">結果をXでシェア</button>
             </div>
         </div>
@@ -100,7 +118,7 @@
     </div>
 
     <div class="mt-8 text-center text-gray-500 text-sm max-w-xs pointer-events-none">
-        <p>ハイスコアはブラウザに保存されます。🌳🐕🐾</p>
+        <p>ハイスコアはブラウザに保存されます。🐾</p>
     </div>
 
     <script>
@@ -112,6 +130,9 @@
         
         const startScreen = document.getElementById('start-screen');
         const gameoverScreen = document.getElementById('gameover-screen');
+        const gameoverText = document.getElementById('gameover-text');
+        const newRecordLabel = document.getElementById('new-record-label');
+        const gameoverIcon = document.getElementById('gameover-icon');
         const container = document.getElementById('game-container');
         const retryBtn = document.getElementById('retry-btn');
         const shareBtn = document.getElementById('share-btn');
@@ -120,9 +141,10 @@
         let isGameOver = false;
         let isGameStarted = false;
         let score = 0;
-        let highscore = localStorage.getItem('dog_run_v5_highscore') || 0;
+        let highscore = parseInt(localStorage.getItem('wanwan_run_highscore')) || 0;
         let initialSpeed = 3.5; 
         let gameSpeed = initialSpeed;
+        const maxSpeed = initialSpeed * 2.0; 
         let animationId;
         let bgOffset = 0;
 
@@ -133,7 +155,7 @@
             y: 0,
             width: 48,
             height: 48,
-            jumpForce: 13,
+            jumpForce: 10.4, 
             gravity: 0.5,
             velocity: 0,
             jumpCount: 0,
@@ -143,11 +165,10 @@
 
         let obstacles = [];
         const obstacleTypes = [
-            { emoji: '🍖', w: 40, h: 40 }, 
-            { emoji: '🍗', w: 35, h: 35 }  
+            { type: 'ground', emoji: '🐕‍🦺', w: 50, h: 50 },
+            { type: 'air', emoji: '🦅', w: 45, h: 45 }
         ];
 
-        // Background elements (static-ish but can move)
         const clouds = [
             { x: 50, y: 30, scale: 1 },
             { x: 250, y: 60, scale: 0.8 },
@@ -196,18 +217,27 @@
             isGameOver = false;
             startScreen.style.display = 'none';
             gameoverScreen.style.display = 'none';
+            newRecordLabel.classList.add('hidden');
+            gameoverIcon.classList.remove('hidden');
             resetGameState();
             draw();
         }
 
         function spawnObstacle() {
             const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+            let yPos = gameHeight - type.h;
+            
+            if (type.type === 'air') {
+                yPos = gameHeight - 110; 
+            }
+
             obstacles.push({
                 x: gameWidth,
-                y: gameHeight - type.h,
+                y: yPos,
                 w: type.w,
                 h: type.h,
-                emoji: type.emoji
+                emoji: type.emoji,
+                type: type.type
             });
         }
 
@@ -225,38 +255,43 @@
                 player.jumpCount = 0;
             }
 
-            if (Math.random() < 0.015 && (obstacles.length === 0 || obstacles[obstacles.length - 1].x < gameWidth - 280)) {
+            let spawnRate = 0.015 + (gameSpeed * 0.001);
+            if (Math.random() < spawnRate && (obstacles.length === 0 || obstacles[obstacles.length - 1].x < gameWidth - (250 - gameSpeed * 5))) {
                 spawnObstacle();
             }
 
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].x -= gameSpeed;
+                
+                let padding = obstacles[i].type === 'air' ? 10 : 15;
                 if (
-                    player.x + 10 < obstacles[i].x + obstacles[i].w &&
-                    player.x + player.width - 10 > obstacles[i].x &&
+                    player.x + padding < obstacles[i].x + obstacles[i].w &&
+                    player.x + player.width - padding > obstacles[i].x &&
                     player.y + 10 < obstacles[i].y + obstacles[i].h &&
                     player.y + player.height - 5 > obstacles[i].y
                 ) {
-                    gameOver();
+                    gameOver(obstacles[i].emoji);
                 }
+
                 if (obstacles[i].x + obstacles[i].w < 0) {
                     obstacles.splice(i, 1);
                     score++;
                     scoreElement.innerText = `SCORE: ${score}`;
-                    if (score > 0 && score % 10 === 0) gameSpeed += 0.2;
+                    
+                    if (score > 0 && score % 5 === 0) {
+                        gameSpeed = Math.min(gameSpeed * 1.1, maxSpeed);
+                    }
                 }
             }
         }
 
         function drawBackground() {
-            // Sky
             let skyGradient = ctx.createLinearGradient(0, 0, 0, gameHeight);
             skyGradient.addColorStop(0, '#87ceeb');
             skyGradient.addColorStop(1, '#e0f2fe');
             ctx.fillStyle = skyGradient;
             ctx.fillRect(0, 0, gameWidth, gameHeight);
 
-            // Clouds
             ctx.fillStyle = "white";
             clouds.forEach(c => {
                 let cx = (c.x - bgOffset * 0.1 + 800) % 800 - 100;
@@ -267,7 +302,6 @@
                 ctx.fill();
             });
 
-            // Distant Mountains
             ctx.fillStyle = "#a7f3d0";
             for(let i=0; i<3; i++) {
                 let mx = (i * 300 - bgOffset * 0.2 + 900) % 900 - 150;
@@ -278,21 +312,18 @@
                 ctx.fill();
             }
 
-            // Ground/Trees (Scrolled)
-            ctx.fillStyle = "#22c55e"; // Grass
+            ctx.fillStyle = "#22c55e"; 
             ctx.fillRect(0, gameHeight - 30, gameWidth, 30);
             
-            // Road
-            ctx.fillStyle = "#52525b"; // Asphalt
+            ctx.fillStyle = "#52525b"; 
             ctx.fillRect(0, gameHeight - 15, gameWidth, 15);
 
-            // Trees
             for(let i=0; i<5; i++) {
                 let tx = (i * 200 - bgOffset + 1000) % 1000 - 50;
                 if(tx < gameWidth + 50) {
-                    ctx.fillStyle = "#78350f"; // Trunk
+                    ctx.fillStyle = "#78350f"; 
                     ctx.fillRect(tx + 15, gameHeight - 60, 10, 30);
-                    ctx.fillStyle = "#15803d"; // Leaves
+                    ctx.fillStyle = "#15803d"; 
                     ctx.beginPath();
                     ctx.arc(tx + 20, gameHeight - 70, 25, 0, Math.PI * 2);
                     ctx.fill();
@@ -304,12 +335,10 @@
             ctx.clearRect(0, 0, gameWidth, gameHeight);
             drawBackground();
 
-            // Character
             ctx.font = `${player.width}px serif`;
             ctx.textBaseline = 'top';
             ctx.fillText(player.emoji, player.x, player.y);
 
-            // Obstacles
             for (const ob of obstacles) {
                 ctx.font = `${ob.w}px serif`;
                 ctx.fillText(ob.emoji, ob.x, ob.y);
@@ -321,17 +350,28 @@
             }
         }
 
-        function gameOver() {
+        function gameOver(hitEmoji) {
             isGameOver = true;
             cancelAnimationFrame(animationId);
             
             if (score > highscore) {
                 highscore = score;
-                localStorage.setItem('dog_run_v5_highscore', highscore);
+                localStorage.setItem('wanwan_run_highscore', highscore);
                 highscoreElement.innerText = `BEST: ${highscore}`;
+                newRecordLabel.classList.remove('hidden');
+            } else {
+                newRecordLabel.classList.add('hidden');
             }
 
-            finalScoreElement.innerText = `今回の記録: ${score} お肉`;
+            if (hitEmoji === '🦅') {
+                gameoverIcon.innerText = '🦅💢';
+                gameoverText.innerText = 'ツンツンされた！';
+            } else {
+                gameoverIcon.innerText = '💢🐕‍🦺';
+                gameoverText.innerText = 'ウゥーッ！ガブッ！';
+            }
+
+            finalScoreElement.innerText = `記録: ${score} 回避！`;
             gameoverScreen.style.display = 'flex';
         }
 
@@ -342,7 +382,7 @@
 
         shareBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const text = `🐕イヌくんランナー🐕でお散歩！記録は ${score} お肉でした！ #イヌくんランナー`;
+            const text = `🐕わんわんランナー🐕で ${score} 回避！ #わんわんランナー`;
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
             window.open(url, '_blank');
         });
@@ -358,7 +398,7 @@
         }
 
         resize();
-        draw(); // Initial draw for start screen state
+        draw(); 
 
     </script>
 </body>
