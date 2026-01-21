@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ウンチくんランナー - オンライン</title>
+    <title>イヌくんランナー - お散歩コース</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -11,7 +11,7 @@
             overflow: hidden;
             touch-action: manipulation;
             font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f0f4f8;
+            background-color: #e0f2fe;
             min-height: 100vh;
             user-select: none;
         }
@@ -20,10 +20,10 @@
             width: 100%;
             max-width: 600px;
             height: 350px;
-            background-color: white;
-            border-bottom: 4px solid #8b4513;
+            background-color: #87ceeb; /* Sky blue fallback */
+            border-bottom: 15px solid #71717a; /* Asphalt road edge */
             overflow: hidden;
-            border-radius: 8px 8px 0 0;
+            border-radius: 12px;
         }
         .stats {
             position: absolute;
@@ -33,37 +33,43 @@
             display: flex;
             justify-content: space-between;
             font-size: 18px;
-            color: #555;
+            color: #ffffff;
             font-weight: bold;
-            z-index: 10;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 20;
         }
-        #message {
+        .overlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            display: none;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             z-index: 30;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            width: 80%;
+            background: rgba(255, 255, 255, 0.7);
+            text-align: center;
         }
         canvas {
             display: block;
         }
-        .bg-ground {
-            background-color: #f7f7f7;
+        .blink {
+            animation: blink 1.5s infinite;
+        }
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.1; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center p-4">
 
     <div class="mb-4 text-center pointer-events-none">
-        <h1 class="text-3xl font-extrabold text-amber-900">ウンチくんランナー</h1>
-        <p class="text-gray-600">画面のどこでもタップで2段ジャンプ！</p>
+        <h1 class="text-3xl font-extrabold text-blue-900">イヌくんランナー</h1>
+        <p class="text-blue-700">お散歩コースを駆け抜けよう！</p>
     </div>
 
     <div id="game-container" class="shadow-2xl">
@@ -72,19 +78,29 @@
             <div id="highscore">BEST: 0</div>
         </div>
         
-        <div id="message">
-            <h2 class="text-3xl font-bold text-red-600 mb-2">GAME OVER</h2>
-            <p id="final-score" class="text-xl mb-4 text-gray-700"></p>
-            <div class="flex flex-col gap-2">
-                <button id="retry-btn" class="bg-amber-700 text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-amber-800 transition shadow-lg">もう一度あそぶ</button>
-                <button id="share-btn" class="bg-blue-400 text-white px-8 py-2 rounded-full font-bold text-sm hover:bg-blue-500 transition">結果をXでシェア</button>
+        <!-- Start Screen -->
+        <div id="start-screen" class="overlay">
+            <div class="text-6xl mb-4">🐕</div>
+            <h2 class="text-2xl font-bold text-green-900 mb-8">お散歩スタート！</h2>
+            <p class="text-xl font-bold text-gray-700 blink">画面をタッチして走る</p>
+            <p class="mt-4 text-sm text-gray-600">お肉を避けて進もう！🍖</p>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameover-screen" class="overlay" style="display: none;">
+            <h2 class="text-3xl font-bold text-red-600 mb-2">休憩タイム！</h2>
+            <p id="final-score" class="text-xl mb-6 text-gray-700"></p>
+            <div class="flex flex-col gap-3 w-64">
+                <button id="retry-btn" class="bg-green-600 text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-green-700 transition shadow-lg">もう一度走る</button>
+                <button id="share-btn" class="bg-sky-400 text-white px-8 py-2 rounded-full font-bold text-sm hover:bg-sky-500 transition">結果をXでシェア</button>
             </div>
         </div>
+
         <canvas id="gameCanvas"></canvas>
     </div>
 
-    <div class="mt-8 text-center text-gray-500 text-sm max-w-xs">
-        <p>ハイスコアはブラウザに保存されます。<br>オフラインでも遊べるよ！💩</p>
+    <div class="mt-8 text-center text-gray-500 text-sm max-w-xs pointer-events-none">
+        <p>ハイスコアはブラウザに保存されます。🌳🐕🐾</p>
     </div>
 
     <script>
@@ -93,40 +109,49 @@
         const scoreElement = document.getElementById('score');
         const highscoreElement = document.getElementById('highscore');
         const finalScoreElement = document.getElementById('final-score');
-        const messageElement = document.getElementById('message');
+        
+        const startScreen = document.getElementById('start-screen');
+        const gameoverScreen = document.getElementById('gameover-screen');
         const container = document.getElementById('game-container');
         const retryBtn = document.getElementById('retry-btn');
         const shareBtn = document.getElementById('share-btn');
 
         let gameWidth, gameHeight;
         let isGameOver = false;
+        let isGameStarted = false;
         let score = 0;
-        let highscore = localStorage.getItem('unchi_highscore') || 0;
+        let highscore = localStorage.getItem('dog_run_v5_highscore') || 0;
         let initialSpeed = 3.5; 
         let gameSpeed = initialSpeed;
         let animationId;
+        let bgOffset = 0;
 
         highscoreElement.innerText = `BEST: ${highscore}`;
 
         const player = {
             x: 60,
             y: 0,
-            width: 44,
-            height: 44,
+            width: 48,
+            height: 48,
             jumpForce: 13,
             gravity: 0.5,
             velocity: 0,
             jumpCount: 0,
             maxJumps: 2,
-            emoji: '💩'
+            emoji: '🐕'
         };
 
         let obstacles = [];
         const obstacleTypes = [
-            { emoji: '🧻', w: 34, h: 34 },
-            { emoji: '🌵', w: 32, h: 42 },
-            { emoji: '🧱', w: 38, h: 38 },
-            { emoji: '💦', w: 30, h: 30 }
+            { emoji: '🍖', w: 40, h: 40 }, 
+            { emoji: '🍗', w: 35, h: 35 }  
+        ];
+
+        // Background elements (static-ish but can move)
+        const clouds = [
+            { x: 50, y: 30, scale: 1 },
+            { x: 250, y: 60, scale: 0.8 },
+            { x: 450, y: 40, scale: 1.2 }
         ];
 
         function resize() {
@@ -142,6 +167,7 @@
 
         function handleInput(e) {
             if (e && (e.target === retryBtn || e.target === shareBtn)) return;
+            if (!isGameStarted) { startGame(); return; }
             if (isGameOver) return;
 
             if (player.jumpCount < player.maxJumps) {
@@ -165,6 +191,15 @@
             if (e.button === 0) handleInput(e);
         });
 
+        function startGame() {
+            isGameStarted = true;
+            isGameOver = false;
+            startScreen.style.display = 'none';
+            gameoverScreen.style.display = 'none';
+            resetGameState();
+            draw();
+        }
+
         function spawnObstacle() {
             const type = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
             obstacles.push({
@@ -177,7 +212,9 @@
         }
 
         function update() {
-            if (isGameOver) return;
+            if (!isGameStarted || isGameOver) return;
+
+            bgOffset = (bgOffset + gameSpeed * 0.5) % 800;
 
             player.velocity += player.gravity;
             player.y += player.velocity;
@@ -194,51 +231,94 @@
 
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 obstacles[i].x -= gameSpeed;
-
-                // 判定を少し甘く（中心寄り）
                 if (
                     player.x + 10 < obstacles[i].x + obstacles[i].w &&
                     player.x + player.width - 10 > obstacles[i].x &&
-                    player.y + 5 < obstacles[i].y + obstacles[i].h &&
+                    player.y + 10 < obstacles[i].y + obstacles[i].h &&
                     player.y + player.height - 5 > obstacles[i].y
                 ) {
                     gameOver();
                 }
-
                 if (obstacles[i].x + obstacles[i].w < 0) {
                     obstacles.splice(i, 1);
                     score++;
                     scoreElement.innerText = `SCORE: ${score}`;
-                    if (score % 10 === 0) gameSpeed += 0.2;
+                    if (score > 0 && score % 10 === 0) gameSpeed += 0.2;
+                }
+            }
+        }
+
+        function drawBackground() {
+            // Sky
+            let skyGradient = ctx.createLinearGradient(0, 0, 0, gameHeight);
+            skyGradient.addColorStop(0, '#87ceeb');
+            skyGradient.addColorStop(1, '#e0f2fe');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+            // Clouds
+            ctx.fillStyle = "white";
+            clouds.forEach(c => {
+                let cx = (c.x - bgOffset * 0.1 + 800) % 800 - 100;
+                ctx.beginPath();
+                ctx.arc(cx, c.y, 20 * c.scale, 0, Math.PI * 2);
+                ctx.arc(cx + 25 * c.scale, c.y - 10 * c.scale, 20 * c.scale, 0, Math.PI * 2);
+                ctx.arc(cx + 50 * c.scale, c.y, 20 * c.scale, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Distant Mountains
+            ctx.fillStyle = "#a7f3d0";
+            for(let i=0; i<3; i++) {
+                let mx = (i * 300 - bgOffset * 0.2 + 900) % 900 - 150;
+                ctx.beginPath();
+                ctx.moveTo(mx, gameHeight);
+                ctx.lineTo(mx + 150, gameHeight - 80);
+                ctx.lineTo(mx + 300, gameHeight);
+                ctx.fill();
+            }
+
+            // Ground/Trees (Scrolled)
+            ctx.fillStyle = "#22c55e"; // Grass
+            ctx.fillRect(0, gameHeight - 30, gameWidth, 30);
+            
+            // Road
+            ctx.fillStyle = "#52525b"; // Asphalt
+            ctx.fillRect(0, gameHeight - 15, gameWidth, 15);
+
+            // Trees
+            for(let i=0; i<5; i++) {
+                let tx = (i * 200 - bgOffset + 1000) % 1000 - 50;
+                if(tx < gameWidth + 50) {
+                    ctx.fillStyle = "#78350f"; // Trunk
+                    ctx.fillRect(tx + 15, gameHeight - 60, 10, 30);
+                    ctx.fillStyle = "#15803d"; // Leaves
+                    ctx.beginPath();
+                    ctx.arc(tx + 20, gameHeight - 70, 25, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
         }
 
         function draw() {
             ctx.clearRect(0, 0, gameWidth, gameHeight);
+            drawBackground();
 
-            // 背景の線
-            ctx.strokeStyle = '#eee';
-            for(let i=0; i<gameWidth; i+=40) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0); ctx.lineTo(i, gameHeight);
-                ctx.stroke();
-            }
-
-            // キャラ
+            // Character
             ctx.font = `${player.width}px serif`;
+            ctx.textBaseline = 'top';
             ctx.fillText(player.emoji, player.x, player.y);
 
-            // 障害物
+            // Obstacles
             for (const ob of obstacles) {
                 ctx.font = `${ob.w}px serif`;
                 ctx.fillText(ob.emoji, ob.x, ob.y);
             }
 
-            animationId = requestAnimationFrame(() => {
+            if (isGameStarted && !isGameOver) {
+                animationId = requestAnimationFrame(draw);
                 update();
-                draw();
-            });
+            }
         }
 
         function gameOver() {
@@ -247,28 +327,27 @@
             
             if (score > highscore) {
                 highscore = score;
-                localStorage.setItem('unchi_highscore', highscore);
+                localStorage.setItem('dog_run_v5_highscore', highscore);
                 highscoreElement.innerText = `BEST: ${highscore}`;
             }
 
-            finalScoreElement.innerText = `今回のスコア: ${score}`;
-            messageElement.style.display = 'block';
+            finalScoreElement.innerText = `今回の記録: ${score} お肉`;
+            gameoverScreen.style.display = 'flex';
         }
 
         retryBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            resetGame();
+            startGame();
         });
 
         shareBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const text = `💩ウンチくんランナー💩でスコア ${score} を獲得！最高記録は ${highscore} だよ！ #ウンチくんランナー`;
+            const text = `🐕イヌくんランナー🐕でお散歩！記録は ${score} お肉でした！ #イヌくんランナー`;
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
             window.open(url, '_blank');
         });
 
-        function resetGame() {
-            isGameOver = false;
+        function resetGameState() {
             score = 0;
             gameSpeed = initialSpeed;
             obstacles = [];
@@ -276,11 +355,11 @@
             player.velocity = 0;
             player.jumpCount = 0;
             scoreElement.innerText = `SCORE: ${score}`;
-            messageElement.style.display = 'none';
-            draw();
         }
 
-        draw();
+        resize();
+        draw(); // Initial draw for start screen state
+
     </script>
 </body>
 </html>
