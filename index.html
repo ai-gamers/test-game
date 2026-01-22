@@ -70,6 +70,14 @@
             from { transform: scale(1); }
             to { transform: scale(1.1); }
         }
+        .other-game-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #d97706;
+            font-weight: bold;
+            text-decoration: underline;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center p-4">
@@ -95,11 +103,12 @@
                     <span>🦅</span>
                 </div>
             </div>
-            <h2 class="text-2xl font-bold text-green-900 mb-6">お散歩スタート</h2>
+            <h2 class="text-2xl font-bold text-green-900 mb-4">お散歩スタート</h2>
             <div class="text-center">
                 <p class="text-xl font-bold text-gray-700 blink">画面をタップして開始</p>
                 <p class="mt-2 text-orange-600 font-bold">（2段ジャンプができるよ！）</p>
             </div>
+            <a href="kinoko.html" class="other-game-link">🍄 きのこマンが走る</a>
         </div>
 
         <!-- ゲームオーバー画面 -->
@@ -112,6 +121,7 @@
                 <button id="retry-btn" class="bg-green-600 text-white px-8 py-3 rounded-full font-bold text-lg hover:bg-green-700 transition shadow-lg">もう一度お散歩する</button>
                 <button id="share-btn" class="bg-sky-400 text-white px-8 py-2 rounded-full font-bold text-sm hover:bg-sky-500 transition">結果をXでシェア</button>
             </div>
+            <a href="kinoko.html" class="other-game-link">🍄 きのこマンが走る</a>
         </div>
 
         <canvas id="gameCanvas"></canvas>
@@ -187,7 +197,10 @@
         resize();
 
         function handleInput(e) {
+            // 他のゲームへのリンクをクリックした際はゲームを開始させない
+            if (e && e.target.closest('.other-game-link')) return;
             if (e && (e.target === retryBtn || e.target === shareBtn)) return;
+            
             if (!isGameStarted) { startGame(); return; }
             if (isGameOver) return;
 
@@ -202,7 +215,7 @@
         });
 
         document.body.addEventListener('touchstart', (e) => {
-            if (e.target.tagName !== 'BUTTON') {
+            if (e.target.tagName !== 'BUTTON' && !e.target.closest('.other-game-link')) {
                 e.preventDefault();
                 handleInput(e);
             }
@@ -401,8 +414,6 @@
         draw(); 
 
     </script>
-    
 </body>
-    <a href="kinoko.html">きのこマンが走る</a>
 </html>
 
