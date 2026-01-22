@@ -62,11 +62,11 @@
             pointer-events: auto;
             text-align: center;
             background: rgba(255, 255, 255, 0.96);
-            padding: 18px;
+            padding: 12px;
             border-radius: 20px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             border: 4px solid #000;
-            width: 280px;
+            width: 260px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -101,21 +101,26 @@
         .ranking-item {
             display: flex;
             justify-content: space-between;
-            padding: 2px 8px;
-            font-size: 13px;
+            padding: 1px 6px;
+            font-size: 12px;
             border-bottom: 1px solid #f1f5f9;
         }
         
         .btn-action {
             width: 100%;
-            padding: 10px 0;
-            border-radius: 8px;
+            padding: 6px 0;
+            border-radius: 6px;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
             border: 2px solid #000;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
         }
         .btn-action:active { transform: scale(0.95); }
+        .btn-x { background-color: #000; color: #fff; }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-2">
@@ -132,28 +137,32 @@
 
                 <div id="title-screen" class="screen flex-col items-center">
                     <div class="text-4xl mb-1 floating">🏃🍄</div>
-                    <h1 class="text-xl font-black mb-2 text-slate-800">きのこマン 1-1</h1>
+                    <h1 class="text-xl font-black mb-1 text-slate-800">きのこマン 1-1</h1>
                     
-                    <div class="w-full bg-slate-50 rounded-lg p-2 mb-3">
-                        <p class="text-[10px] font-bold text-slate-400 tracking-widest mb-1 uppercase">TOP 3 RECORDS</p>
+                    <div class="w-full bg-slate-50 rounded-lg p-2 mb-2">
+                        <p class="text-[9px] font-bold text-slate-400 tracking-widest mb-1 uppercase">TOP 3 RECORDS</p>
                         <div id="rankingListTitle"></div>
                     </div>
 
-                    <p class="text-md text-slate-600 font-bold blink italic">タップしてスタート</p>
+                    <p class="text-sm text-slate-600 font-bold blink italic">タップしてスタート</p>
                 </div>
 
                 <div id="game-over-screen" class="screen flex-col items-center">
-                    <h2 class="text-xl font-black mb-1 text-red-600">GAME OVER</h2>
-                    <p class="mb-2 text-slate-600 text-md">スコア: <span id="finalScore" class="font-bold text-slate-900">0</span></p>
+                    <h2 class="text-lg font-black mb-0 text-red-600">GAME OVER</h2>
+                    <p class="mb-1 text-slate-600 text-sm">スコア: <span id="finalScore" class="font-bold text-slate-900">0</span></p>
                     
-                    <div id="newRecordMsg" class="hidden text-red-500 font-bold mb-1 text-xs animate-bounce">✨ NEW RECORD! ✨</div>
+                    <div id="newRecordMsg" class="hidden text-red-500 font-bold mb-1 text-[10px] animate-bounce">✨ NEW RECORD! ✨</div>
 
-                    <div class="w-full bg-slate-50 rounded-lg p-2 mb-3">
-                        <p class="text-[10px] font-bold text-slate-400 tracking-widest mb-1 uppercase">RANKING</p>
+                    <div class="w-full bg-slate-50 rounded-lg p-2 mb-2">
+                        <p class="text-[9px] font-bold text-slate-400 tracking-widest mb-1 uppercase">RANKING</p>
                         <div id="rankingListGameOver"></div>
                     </div>
 
-                    <div class="flex flex-col gap-2 w-full">
+                    <div class="flex flex-col gap-1.5 w-full">
+                        <button id="shareXBtn" class="btn-action btn-x">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+                            結果をシェア
+                        </button>
                         <button id="restartBtn" class="btn-action bg-slate-800 text-white">リトライ</button>
                         <button id="toTitleBtn" class="btn-action bg-slate-200 text-slate-700">タイトルへ戻る</button>
                     </div>
@@ -211,6 +220,7 @@
         const gameOverScreen = document.getElementById('game-over-screen');
         const restartBtn = document.getElementById('restartBtn');
         const toTitleBtn = document.getElementById('toTitleBtn');
+        const shareXBtn = document.getElementById('shareXBtn');
         const container = document.getElementById('game-container');
         const bonusIndicator = document.getElementById('bonusIndicator');
         const rankingListTitle = document.getElementById('rankingListTitle');
@@ -349,7 +359,7 @@
         function renderRanking(element) {
             element.innerHTML = '';
             if (highScores.length === 0) {
-                element.innerHTML = '<div class="text-slate-300 text-[11px] py-1 italic">記録なし</div>';
+                element.innerHTML = '<div class="text-slate-300 text-[10px] py-1 italic">記録なし</div>';
                 return;
             }
             highScores.forEach((s, i) => {
@@ -415,13 +425,11 @@
                 if (pits[i].x + pits[i].width < -50) pits.splice(i, 1);
             }
 
-            // スポーン間隔の調整: minGapを狭く (280 -> 180) 頻度を高く (0.015 -> 0.02)
             if (Math.random() < 0.02) {
                 const lastObjX = Math.max(
                     obstacles.length > 0 ? obstacles[obstacles.length-1].x : 0,
                     pits.length > 0 ? pits[pits.length-1].x + pits[pits.length-1].width : 0
                 );
-                // 間隔を狭めて連続的なチャレンジに
                 const minGap = 180 + gameSpeed * 8;
 
                 if (canvas.width - lastObjX > minGap) {
@@ -519,11 +527,19 @@
             if (e.cancelable && e.type !== 'mousedown') e.preventDefault();
         }
 
+        function shareOnX() {
+            const finalScore = Math.floor(score);
+            const text = encodeURIComponent(`🏃🍄 きのこマン 1-1 で ${finalScore} 点を獲得しました！\n穴を飛び越え、キノコを倒してどこまで進めるか挑戦しよう！\n\n#きのこマン #Game`);
+            const url = `https://twitter.com/intent/tweet?text=${text}`;
+            window.open(url, '_blank');
+        }
+
         window.addEventListener('keydown', handleInput);
         window.addEventListener('touchstart', handleInput, { passive: false });
         window.addEventListener('mousedown', handleInput);
         restartBtn.addEventListener('click', (e) => { e.stopPropagation(); startGame(); });
         toTitleBtn.addEventListener('click', (e) => { e.stopPropagation(); showTitle(); });
+        shareXBtn.addEventListener('click', (e) => { e.stopPropagation(); shareOnX(); });
 
         window.onload = () => {
             canvas.width = container.clientWidth;
