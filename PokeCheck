@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポケポケ判断シミュレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .input-group:focus-within label {
+            color: #2563eb;
+        }
+        .card-shadow {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex justify-center items-start min-h-screen">
+    <div class="max-w-md w-full">
+        <header class="text-center mb-6">
+            <h1 class="text-2xl font-black text-gray-900 tracking-tight">ポケポケ判断くん Ver.2</h1>
+            <p class="text-xs text-gray-500 font-medium">モノマネ娘の「手札戻し」仕様に対応</p>
+        </header>
+
+        <div class="bg-white rounded-2xl p-6 card-shadow border border-gray-100 mb-6">
+            <div class="grid grid-cols-2 gap-4">
+                <!-- 山札の残り -->
+                <div class="col-span-2 input-group">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">現在の山札の残り枚数</label>
+                    <input type="number" id="deckRemaining" value="10" min="1" max="20" class="w-full bg-gray-50 p-3 border-2 border-transparent rounded-xl focus:border-blue-500 focus:bg-white outline-none transition-all font-bold text-lg">
+                </div>
+
+                <!-- 自分の手札 -->
+                <div class="input-group">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">自分の手札枚数</label>
+                    <div class="relative">
+                        <input type="number" id="myHand" value="4" min="1" max="10" class="w-full bg-gray-50 p-3 border-2 border-transparent rounded-xl focus:border-blue-500 focus:bg-white outline-none transition-all font-bold text-lg">
+                        <span class="absolute right-3 top-3 text-gray-300 text-xs">※使用前</span>
+                    </div>
+                </div>
+
+                <!-- 相手の手札 -->
+                <div class="input-group">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">相手の手札枚数</label>
+                    <input type="number" id="opponentHand" value="5" min="0" max="10" class="w-full bg-gray-50 p-3 border-2 border-transparent rounded-xl focus:border-purple-500 focus:bg-white outline-none transition-all font-bold text-lg">
+                </div>
+
+                <!-- 当たりの残り -->
+                <div class="col-span-2 input-group">
+                    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">引きたいカードの残り（山札内）</label>
+                    <input type="number" id="targetCards" value="2" min="1" max="10" class="w-full bg-gray-50 p-3 border-2 border-transparent rounded-xl focus:border-green-500 focus:bg-white outline-none transition-all font-bold text-lg text-green-700">
+                </div>
+            </div>
+
+            <button onclick="calculate()" class="w-full mt-6 bg-blue-600 text-white font-black py-4 rounded-xl hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-200">
+                期待値を計算する
+            </button>
+        </div>
+
+        <!-- 結果表示エリア -->
+        <div id="resultArea" class="hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div id="recommendationCard" class="bg-white rounded-2xl p-6 border-l-8 border-blue-500 card-shadow mb-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">推奨されるアクション</p>
+                        <h2 id="bestChoiceText" class="text-3xl font-black text-gray-900 mt-1">---</h2>
+                    </div>
+                    <div id="choiceIcon" class="w-12 h-12 rounded-full flex items-center justify-center text-2xl">
+                        💡
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <!-- 博士 -->
+                <div class="bg-white rounded-xl p-4 border border-blue-100 card-shadow">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <span class="text-xs font-bold text-gray-600">博士の研究</span>
+                    </div>
+                    <div class="text-2xl font-black text-blue-600"><span id="profProb">0</span><span class="text-sm ml-0.5">%</span></div>
+                    <p class="text-[10px] text-gray-400 mt-1">期待値: <span id="profEV">0.00</span>枚</p>
+                </div>
+                <!-- モノマネ娘 -->
+                <div class="bg-white rounded-xl p-4 border border-purple-100 card-shadow">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-2 h-2 rounded-full bg-purple-500"></div>
+                        <span class="text-xs font-bold text-gray-600">モノマネ娘</span>
+                    </div>
+                    <div class="text-2xl font-black text-purple-600"><span id="copyProb">0</span><span class="text-sm ml-0.5">%</span></div>
+                    <p class="text-[10px] text-gray-400 mt-1">期待値: <span id="copyEV">0.00</span>枚</p>
+                </div>
+            </div>
+            
+            <p class="mt-4 text-[10px] text-gray-400 leading-relaxed text-center px-4">
+                ※的中率は「少なくとも1枚引ける確率」です。<br>
+                モノマネ娘の計算には、自分の手札(使用カード以外)を山札に戻した後の母数を使用しています。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function combinations(n, k) {
+            if (k < 0 || k > n) return 0;
+            if (k === 0 || k === n) return 1;
+            if (k > n / 2) k = n - k;
+            let res = 1;
+            for (let i = 1; i <= k; i++) {
+                res = res * (n - i + 1) / i;
+            }
+            return res;
+        }
+
+        function getAtLeastOneProb(deckSize, targets, draws) {
+            if (draws <= 0) return 0;
+            if (draws >= deckSize) return targets > 0 ? 1 : 0;
+            
+            const totalWays = combinations(deckSize, draws);
+            const failWays = combinations(deckSize - targets, draws);
+            
+            return 1 - (failWays / totalWays);
+        }
+
+        function calculate() {
+            // 入力値の取得
+            const deckRaw = parseInt(document.getElementById('deckRemaining').value) || 0;
+            const myHandRaw = parseInt(document.getElementById('myHand').value) || 1;
+            const oppHand = parseInt(document.getElementById('opponentHand').value) || 0;
+            const targets = parseInt(document.getElementById('targetCards').value) || 0;
+
+            // 1. 博士の研究の計算
+            // 山札の母数は変わらない
+            const profDraw = 2;
+            const profProb = getAtLeastOneProb(deckRaw, targets, profDraw);
+            const profEV = profDraw * (targets / deckRaw);
+
+            // 2. モノマネ娘の計算
+            // モノマネ娘カード自体を1枚消費し、残りの手札をすべて戻す
+            // 山札の母数 = 元の山札 + (自分の手札 - 1)
+            const deckForCopy = deckRaw + (myHandRaw - 1);
+            const copyDraw = oppHand;
+            const copyProb = getAtLeastOneProb(deckForCopy, targets, copyDraw);
+            const copyEV = copyDraw * (targets / deckForCopy);
+
+            // 表示の更新
+            document.getElementById('profProb').innerText = (profProb * 100).toFixed(1);
+            document.getElementById('profEV').innerText = profEV.toFixed(2);
+            document.getElementById('copyProb').innerText = (copyProb * 100).toFixed(1);
+            document.getElementById('copyEV').innerText = copyEV.toFixed(2);
+
+            const bestText = document.getElementById('bestChoiceText');
+            const recCard = document.getElementById('recommendationCard');
+            
+            // 判定ロジック (的中率優先)
+            if (copyProb > profProb + 0.001) {
+                bestText.innerText = "モノマネ娘";
+                recCard.style.borderColor = "#a855f7";
+                bestText.className = "text-3xl font-black text-purple-600 mt-1";
+            } else if (profProb > copyProb + 0.001) {
+                bestText.innerText = "博士の研究";
+                recCard.style.borderColor = "#3b82f6";
+                bestText.className = "text-3xl font-black text-blue-600 mt-1";
+            } else {
+                bestText.innerText = "期待値は同等";
+                recCard.style.borderColor = "#9ca3af";
+                bestText.className = "text-3xl font-black text-gray-600 mt-1";
+            }
+
+            document.getElementById('resultArea').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
+
