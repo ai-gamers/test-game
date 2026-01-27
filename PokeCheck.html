@@ -13,96 +13,150 @@
         .prof-gradient {
             background: linear-gradient(135deg, #475569 0%, #1e293b 100%);
         }
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='Detail M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+        .input-card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.25rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         }
     </style>
 </head>
 <body class="p-4 md:p-8 flex justify-center items-start min-h-screen">
-    <div class="max-w-md w-full">
-        <!-- Header -->
-        <header class="text-center mb-8">
+    <div class="max-w-md w-full pb-10">
+        <header class="text-center mb-6">
             <h1 class="text-2xl font-black text-slate-800 tracking-tighter">ポケポケ 博士とものまね娘チェッカー</h1>
-            <div class="h-1 w-16 bg-slate-800 mx-auto mt-2 rounded-full"></div>
+            <p class="text-[10px] font-bold text-slate-500 uppercase mt-1 tracking-widest">Evolution Set Draw Analysis</p>
         </header>
 
-        <!-- Input Form -->
-        <div class="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200 border border-white mb-6">
-            <div class="space-y-5">
-                <!-- Deck Count -->
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <label class="block text-xs font-black text-slate-400 mb-2 uppercase tracking-wider">現在の山札の残り枚数</label>
-                    <input type="number" id="deckRemaining" value="10" class="w-full bg-transparent text-2xl font-black text-slate-700 outline-none" placeholder="0">
+        <div class="space-y-4">
+            <!-- Basic Inputs -->
+            <div class="input-card">
+                <div class="mb-4">
+                    <label class="block text-xs font-black text-slate-400 mb-1 uppercase tracking-wider">現在の山札の残り枚数</label>
+                    <select id="deckRemaining" class="w-full text-2xl font-black text-slate-700 bg-transparent border-b-2 border-slate-100 focus:border-slate-800 outline-none transition-colors cursor-pointer"></select>
                 </div>
-
                 <div class="grid grid-cols-2 gap-4">
-                    <!-- My Hand -->
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase text-center tracking-wider">自分の手札枚数</label>
-                        <input type="number" id="myHand" value="4" class="w-full bg-transparent text-xl font-black text-slate-700 outline-none text-center" placeholder="0">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">自分の手札枚数</label>
+                        <select id="myHand" class="w-full text-xl font-black text-slate-700 bg-transparent border-b-2 border-slate-100 focus:border-slate-800 outline-none transition-colors cursor-pointer"></select>
                     </div>
-                    <!-- Opponent Hand -->
-                    <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                        <label class="block text-[10px] font-black text-slate-400 mb-2 uppercase text-center tracking-wider">相手の手札枚数</label>
-                        <input type="number" id="opponentHand" value="5" class="w-full bg-transparent text-xl font-black text-slate-700 outline-none text-center" placeholder="0">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 mb-1 uppercase tracking-wider">相手の手札枚数</label>
+                        <select id="opponentHand" class="w-full text-xl font-black text-slate-700 bg-transparent border-b-2 border-slate-100 focus:border-slate-800 outline-none transition-colors cursor-pointer"></select>
                     </div>
-                </div>
-
-                <!-- Targets -->
-                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                    <label class="block text-xs font-black text-blue-600 mb-2 uppercase tracking-wider">山札にある当たりの数</label>
-                    <input type="number" id="targetCards" value="2" class="w-full bg-transparent text-2xl font-black text-blue-700 outline-none" placeholder="0">
                 </div>
             </div>
 
-            <button onclick="calculate()" class="w-full mt-8 prof-gradient text-white font-black py-4 rounded-2xl hover:opacity-95 active:scale-95 transition-all shadow-lg shadow-slate-300 tracking-widest text-lg">
-                期待値を計算する
+            <!-- Target Inputs (Evolution Set) -->
+            <div class="input-card border-l-4 border-l-blue-500">
+                <h3 class="text-xs font-black text-blue-600 mb-3 uppercase tracking-wider">セット内容 (山札の中にある数)</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 mb-1 tracking-wider">2進化ポケモン</label>
+                        <select id="targetA" class="w-full text-xl font-black text-blue-700 bg-transparent border-b-2 border-blue-50 focus:border-blue-400 outline-none transition-colors cursor-pointer"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 mb-1 tracking-wider">ふしぎなアメ</label>
+                        <select id="targetB" class="w-full text-xl font-black text-blue-700 bg-transparent border-b-2 border-blue-50 focus:border-blue-400 outline-none transition-colors cursor-pointer"></select>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-slate-100">
+                    <p class="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-wider">既に「手札に持っている」枚数</p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 mb-1">手札の2進化</label>
+                            <select id="heldA" class="w-full text-sm font-bold text-slate-600 bg-transparent border-b border-slate-100 focus:border-slate-400 outline-none transition-colors cursor-pointer"></select>
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-400 mb-1">手札のアメ</label>
+                            <select id="heldB" class="w-full text-sm font-bold text-slate-600 bg-transparent border-b border-slate-100 focus:border-slate-400 outline-none transition-colors cursor-pointer"></select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="calculate()" class="w-full prof-gradient text-white font-black py-4 rounded-2xl hover:opacity-95 active:scale-95 transition-all shadow-lg shadow-slate-300 tracking-widest text-lg">
+                解析を実行
             </button>
         </div>
 
         <!-- Results Area -->
-        <div id="resultArea" class="hidden space-y-4 animate-in fade-in zoom-in-95 duration-300">
-            <!-- Best Recommendation -->
+        <div id="resultArea" class="hidden mt-6 space-y-4 animate-in fade-in zoom-in-95 duration-300">
+            <!-- Recommendation -->
             <div id="recommendationCard" class="bg-white rounded-3xl p-6 shadow-lg border-t-8 border-slate-400">
                 <div class="flex items-center gap-4">
                     <div class="flex-1">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">推奨される選択</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">最適な選択</p>
                         <h2 id="bestChoiceText" class="text-3xl font-black mt-1">---</h2>
                     </div>
                     <div id="choiceIcon" class="text-4xl">⚖️</div>
                 </div>
             </div>
 
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-2 gap-4">
-                <!-- Prof -->
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                    <p class="text-[10px] font-black text-slate-400 uppercase mb-2">博士の研究</p>
-                    <div class="text-3xl font-black text-slate-700"><span id="profProb">0</span><span class="text-sm">%</span></div>
-                    <div class="mt-2 text-[10px] font-bold text-slate-400">期待値: <span id="profEV" class="text-slate-600 font-black">0.00</span></div>
+            <!-- Comparison Stats -->
+            <div class="grid grid-cols-1 gap-4">
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                    <p class="text-xs font-black text-slate-400 mb-1 uppercase">博士の研究</p>
+                    <div class="text-4xl font-black text-slate-700 mb-1"><span id="profProb">0</span><span class="text-lg">%</span></div>
+                    <p class="text-[10px] font-medium text-slate-400">
+                        山札 <span id="calcProfDeck" class="font-bold">--</span>枚から不足分を狙う確率
+                    </p>
                 </div>
-                <!-- Copycat -->
-                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                    <p class="text-[10px] font-black text-slate-400 uppercase mb-2">ものまね娘</p>
-                    <div class="text-3xl font-black text-slate-700"><span id="copyProb">0</span><span class="text-sm">%</span></div>
-                    <div class="mt-2 text-[10px] font-bold text-slate-400">期待値: <span id="copyEV" class="text-slate-600 font-black">0.00</span></div>
+
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                    <p class="text-xs font-black text-slate-400 mb-1 uppercase">ものまね娘</p>
+                    <div class="text-4xl font-black text-slate-700 mb-1"><span id="copyProb">0</span><span class="text-lg">%</span></div>
+                    <p class="text-[10px] font-medium text-slate-400">
+                        手札を戻した山札 <span id="calcCopyDeck" class="font-bold">--</span>枚から狙う確率
+                    </p>
                 </div>
             </div>
 
-            <div class="bg-slate-800 text-white p-5 rounded-2xl shadow-lg leading-relaxed">
-                <div class="flex items-start gap-2">
-                    <span class="text-yellow-400 text-sm">💡</span>
-                    <p class="text-[10px] font-medium opacity-90">
-                        「ものまね娘」は自分の手札（自身を除く）を山札に戻すため、山札の総数が増えて当たりの濃度が下がります。相手の手札が自分の手札より2〜3枚以上多くないと、確率的には「博士の研究」の方が有利になるケースが多いです。
-                    </p>
-                </div>
+            <div class="bg-slate-800 text-white p-5 rounded-3xl shadow-lg leading-relaxed text-[11px]">
+                <p class="text-yellow-400 font-black mb-1">計算の詳細（ものまね娘）：</p>
+                <p class="opacity-90">
+                    ものまね娘使用時、自分自身を除く手札枚数（<span id="handBackCount" class="font-bold text-yellow-200">--</span>枚）が山札に加わります。<br>
+                    分母：<span id="memoTotal" class="font-bold">--</span> 枚<br>
+                    合計当たり：2進化 <span id="memoA" class="font-bold text-yellow-200">--</span>枚 / アメ <span id="memoB" class="font-bold text-yellow-200">--</span>枚<br>
+                    この状況から相手の手札枚数分をドローして、各1枚以上揃う確率を算出しています。
+                </p>
             </div>
         </div>
     </div>
 
     <script>
+        // 初期化処理: プルダウンの選択肢を生成
+        window.onload = function() {
+            const populateSelect = (id, min, max, defaultValue) => {
+                const select = document.getElementById(id);
+                for (let i = min; i <= max; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.innerText = i;
+                    if (i === defaultValue) opt.selected = true;
+                    select.appendChild(opt);
+                }
+            };
+
+            populateSelect('deckRemaining', 0, 19, 10);
+            populateSelect('myHand', 0, 19, 4);
+            populateSelect('opponentHand', 0, 19, 5);
+            populateSelect('targetA', 0, 2, 1);
+            populateSelect('targetB', 0, 2, 2);
+            populateSelect('heldA', 0, 2, 1);
+            populateSelect('heldB', 0, 2, 0);
+        };
+
         function combinations(n, k) {
             if (k < 0 || k > n) return 0;
             if (k === 0 || k === n) return 1;
@@ -114,49 +168,70 @@
             return res;
         }
 
-        function getAtLeastOneProb(deckSize, targets, draws) {
-            if (draws <= 0) return 0;
-            if (draws >= deckSize) return targets > 0 ? 1 : 0;
-            const totalWays = combinations(deckSize, draws);
-            const failWays = combinations(deckSize - targets, draws);
-            return 1 - (failWays / totalWays);
+        function calcSetProbability(n, kA, kB, r, mA, mB) {
+            if (mA <= 0 && mB <= 0) return 1; 
+            if (r <= 0) return 0;
+            if (r > n) r = n;
+
+            const totalWays = combinations(n, r);
+            if (totalWays === 0) return 0;
+
+            let successWays = 0;
+            for (let i = 0; i <= kA; i++) {
+                for (let j = 0; j <= kB; j++) {
+                    let l = r - i - j; 
+                    if (l >= 0 && l <= (n - kA - kB)) {
+                        if (i >= mA && j >= mB) {
+                            successWays += combinations(kA, i) * combinations(kB, j) * combinations(n - kA - kB, l);
+                        }
+                    }
+                }
+            }
+            return successWays / totalWays;
         }
 
         function calculate() {
-            const deckRaw = parseInt(document.getElementById('deckRemaining').value) || 0;
-            const myHandRaw = parseInt(document.getElementById('myHand').value) || 1;
-            const oppHand = parseInt(document.getElementById('opponentHand').value) || 0;
-            const targets = parseInt(document.getElementById('targetCards').value) || 0;
+            const deckN = parseInt(document.getElementById('deckRemaining').value);
+            const handN = parseInt(document.getElementById('myHand').value);
+            const oppH = parseInt(document.getElementById('opponentHand').value);
+            const kA_deck = parseInt(document.getElementById('targetA').value);
+            const kB_deck = parseInt(document.getElementById('targetB').value);
+            const hA = parseInt(document.getElementById('heldA').value);
+            const hB = parseInt(document.getElementById('heldB').value);
 
-            if (deckRaw <= 0) return;
+            // --- 博士の研究 ---
+            const goalA_prof = Math.max(0, 1 - hA);
+            const goalB_prof = Math.max(0, 1 - hB);
+            const pProf = (deckN > 0) ? calcSetProbability(deckN, kA_deck, kB_deck, 2, goalA_prof, goalB_prof) : 0;
+            document.getElementById('calcProfDeck').innerText = deckN;
 
-            // 博士の研究: 2枚ドロー、母数は現在の山札のまま
-            const profProb = getAtLeastOneProb(deckRaw, targets, 2);
-            const profEV = 2 * (targets / deckRaw);
+            // --- ものまね娘 ---
+            const returnedCount = Math.max(0, handN - 1);
+            const nTotal = deckN + returnedCount;
+            const kA_total = kA_deck + hA;
+            const kB_total = kB_deck + hB;
+            const pCopy = (nTotal > 0) ? calcSetProbability(nTotal, kA_total, kB_total, oppH, 1, 1) : 0;
+            
+            document.getElementById('calcCopyDeck').innerText = nTotal;
+            document.getElementById('handBackCount').innerText = returnedCount;
+            document.getElementById('memoTotal').innerText = nTotal;
+            document.getElementById('memoA').innerText = kA_total;
+            document.getElementById('memoB').innerText = kB_total;
 
-            // ものまね娘: 相手の手札分ドロー、自分の手札(自身を除く)を戻す
-            // 母数 = 現在の山札 + (自分の手札 - 1)
-            const deckForCopy = deckRaw + Math.max(0, myHandRaw - 1);
-            const copyProb = getAtLeastOneProb(deckForCopy, targets, oppHand);
-            const copyEV = oppHand * (targets / deckForCopy);
-
-            // 数値表示の更新
-            document.getElementById('profProb').innerText = (profProb * 100).toFixed(1);
-            document.getElementById('profEV').innerText = profEV.toFixed(2);
-            document.getElementById('copyProb').innerText = (copyProb * 100).toFixed(1);
-            document.getElementById('copyEV').innerText = copyEV.toFixed(2);
+            // UI Update
+            document.getElementById('profProb').innerText = (pProf * 100).toFixed(1);
+            document.getElementById('copyProb').innerText = (pCopy * 100).toFixed(1);
 
             const bestText = document.getElementById('bestChoiceText');
             const recCard = document.getElementById('recommendationCard');
             const icon = document.getElementById('choiceIcon');
 
-            // 判定ロジック (0.5%以上の差がある場合)
-            if (copyProb > profProb + 0.005) {
+            if (pCopy > pProf + 0.005) {
                 bestText.innerText = "ものまね娘";
                 bestText.className = "text-3xl font-black mt-1 text-purple-600";
                 recCard.style.borderTopColor = "#a855f7";
                 icon.innerText = "👧";
-            } else if (profProb > copyProb + 0.005) {
+            } else if (pProf > pCopy + 0.005) {
                 bestText.innerText = "博士の研究";
                 bestText.className = "text-3xl font-black mt-1 text-blue-600";
                 recCard.style.borderTopColor = "#3b82f6";
@@ -173,4 +248,3 @@
     </script>
 </body>
 </html>
-
