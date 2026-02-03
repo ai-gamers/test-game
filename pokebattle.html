@@ -105,7 +105,15 @@
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Environment Variables
-        const firebaseConfig = JSON.parse(__firebase_config);
+        const firebaseConfig = {
+  apiKey: "AIzaSyD-doc3VpTgreIIpSJhLU3BM-nFjTBk42M",
+  authDomain: "poke-battle-8f6b9.firebaseapp.com",
+  projectId: "poke-battle-8f6b9",
+  storageBucket: "poke-battle-8f6b9.firebasestorage.app",
+  messagingSenderId: "1041885914810",
+  appId: "1:1041885914810:web:426d0c25c499b152f88483",
+  measurementId: "G-RGE3SEGTYL"
+};
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'pokemon-waitlist-html';
         
         // Initialize Firebase
