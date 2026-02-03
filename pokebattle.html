@@ -1,0 +1,210 @@
+import React, { useState, useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, serverTimestamp } from 'firebase/firestore';
+
+// --- Firebase Configuration ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'pokemon-waitlist-jp';
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [waitlist, setWaitlist] = useState([]);
+  const [newName, setNewName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 認証の初期化
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("認証エラー:", err);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // リアルタイムデータの取得
+  useEffect(() => {
+    if (!user) return;
+
+    const waitlistRef = collection(db, 'artifacts', appId, 'public', 'data', 'waitlist');
+    
+    const unsubscribe = onSnapshot(waitlistRef, (snapshot) => {
+      const items = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      const sortedItems = items.sort((a, b) => {
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeA - timeB;
+      });
+      
+      setWaitlist(sortedItems);
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Firestoreエラー:", error);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleAddPlayer = async (e) => {
+    e.preventDefault();
+    if (!newName.trim() || !user) return;
+
+    const docId = crypto.randomUUID();
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'waitlist', docId);
+    
+    try {
+      await setDoc(docRef, {
+        name: newName.trim(),
+        createdAt: serverTimestamp(),
+      });
+      setNewName('');
+    } catch (err) {
+      console.error("プレイヤー追加エラー:", err);
+    }
+  };
+
+  const handleRemovePlayer = async (id) => {
+    if (!user) return;
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'waitlist', id);
+      await deleteDoc(docRef);
+    } catch (err) {
+      console.error("プレイヤー削除エラー:", err);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-[#e0e0e0]">
+        <div className="w-10 h-10 border-4 border-[#333] border-t-transparent animate-spin"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#e0e0e0] p-4 sm:p-8 font-mono">
+      {/* メインコンテナ */}
+      <div className="max-w-xl mx-auto border-[6px] border-[#333] bg-white shadow-[12px_12px_0px_0px_rgba(0,0,0,0.1)]">
+        
+        {/* ヘッダー: 対戦メニュー風 */}
+        <div className="bg-[#ee1515] p-6 border-b-[6px] border-[#333]">
+          <h1 className="text-white text-3xl font-black italic tracking-widest drop-shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+            たいせんまち いちらん
+          </h1>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-2 w-full bg-[#333]/30 rounded-full overflow-hidden">
+               <div className="h-full bg-white w-1/3 animate-pulse"></div>
+            </div>
+            <span className="text-white text-[10px] font-bold whitespace-nowrap uppercase">ライブ こうしんちゅう</span>
+          </div>
+        </div>
+
+        <div className="p-6 bg-[#fff]">
+          {/* 入力エリア */}
+          <form onSubmit={handleAddPlayer} className="mb-10">
+            <div className="flex flex-col gap-1 mb-2">
+              <span className="text-[#333] text-sm font-black italic uppercase">つぎの ちょうせんしゃ：</span>
+            </div>
+            <div className="flex gap-0">
+              <input
+                type="text"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="なまえを にゅうりょく！"
+                className="flex-1 border-[4px] border-[#333] p-4 text-xl focus:outline-none focus:bg-yellow-50 placeholder-gray-300"
+              />
+              <button
+                type="submit"
+                className="bg-[#333] text-white px-8 font-black text-lg border-[4px] border-l-0 border-[#333] hover:bg-red-600 transition-colors active:translate-y-1"
+              >
+                ついか
+              </button>
+            </div>
+          </form>
+
+          {/* リスト表示エリア */}
+          <div className="space-y-4">
+            {waitlist.length === 0 ? (
+              <div className="border-[4px] border-dotted border-gray-300 p-10 text-center text-gray-300 font-black text-xl italic uppercase">
+                ちょうせんしゃを まっています...
+              </div>
+            ) : (
+              waitlist.map((player, index) => (
+                <div
+                  key={player.id}
+                  className="flex items-center justify-between border-[4px] border-[#333] p-5 bg-white shadow-[6px_6px_0px_0px_rgba(51,51,51,1)] relative overflow-hidden group hover:bg-yellow-50 transition-colors"
+                >
+                  {/* 装飾用の角タグ */}
+                  <div className="absolute top-0 left-0 w-8 h-8 bg-[#333] transform -rotate-45 -translate-x-4 -translate-y-4"></div>
+                  
+                  <div className="flex items-baseline gap-4 relative z-10">
+                    <span className="text-3xl font-black text-red-600 italic">
+                      #{index + 1}
+                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">ちょうせんしゃ</span>
+                      <span className="text-2xl font-black text-[#333] leading-none uppercase">
+                        {player.name}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleRemovePlayer(player.id)}
+                    className="p-3 bg-white border-[3px] border-[#333] text-[#333] hover:bg-red-600 hover:text-white transition-all transform hover:rotate-12"
+                    title="さくじょ"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="square">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* フッター */}
+        <div className="bg-[#333] p-4 flex justify-between items-center text-white overflow-hidden">
+            <div className="flex gap-1">
+              {[1,2,3,4,5].map(i => <div key={i} className="w-2 h-2 bg-red-500"></div>)}
+            </div>
+            <span className="text-[11px] font-black tracking-[0.3em] uppercase opacity-80">
+              つうしん たいきじょうたい
+            </span>
+            <div className="flex gap-1">
+              {[1,2,3,4,5].map(i => <div key={i} className="w-2 h-2 bg-white/20"></div>)}
+            </div>
+        </div>
+      </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap');
+        .font-mono {
+          font-family: 'DotGothic16', 'Press Start 2P', sans-serif;
+        }
+      `}</style>
+    </div>
+  );
+}
+
