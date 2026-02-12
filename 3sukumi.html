@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHST3 3すくみ表 体験版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .icon-p { color: #ef4444; } /* 🔴 */
+        .icon-s { color: #3b82f6; } /* 🔵 */
+        .icon-t { color: #10b981; } /* 🟢 */
+        
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: rgba(15, 23, 42, 0.98);
+            backdrop-filter: blur(8px);
+        }
+
+        .type-label {
+            font-size: 0.65rem;
+            font-weight: bold;
+            color: #94a3b8;
+            margin-top: 1px;
+        }
+
+        .filter-btn {
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .filter-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .monster-card {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans pb-10">
+
+    <!-- Header & Filters -->
+    <header class="sticky-header text-white shadow-xl">
+        <div class="p-4 border-b border-slate-700">
+            <h1 class="text-lg font-bold text-center">MHST3 3すくみ表 体験版</h1>
+            <div class="flex justify-center gap-6 mt-1 text-[10px]">
+                <div class="flex items-center gap-1">🔴 パワー</div>
+                <div class="flex items-center gap-1">🔵 スピード</div>
+                <div class="flex items-center gap-1">🟢 テク</div>
+            </div>
+        </div>
+        
+        <!-- Filter Tabs -->
+        <nav class="flex overflow-x-auto p-2 gap-2 no-scrollbar bg-slate-800">
+            <button onclick="filterType('all')" class="filter-btn active px-4 py-1.5 rounded-full text-xs font-bold border border-slate-600" id="btn-all">すべて</button>
+            <button onclick="filterType('草食')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-slate-600" id="btn-草食">草食/その他</button>
+            <button onclick="filterType('鳥竜')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-slate-600" id="btn-鳥竜">鳥竜/両生</button>
+            <button onclick="filterType('飛竜')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-slate-600" id="btn-飛竜">飛竜/海竜/獣竜</button>
+            <button onclick="filterType('特殊')" class="filter-btn px-4 py-1.5 rounded-full text-xs font-bold border border-slate-600" id="btn-特殊">凶異/古龍/特殊</button>
+        </nav>
+    </header>
+
+    <main class="max-w-md mx-auto bg-white min-h-screen shadow-lg pb-20" id="monster-list">
+        <!-- JSで動的に生成 -->
+    </main>
+
+    <script>
+        const monsters = [
+            { id: "01", name: "アプトノス", cat: "草食", normal: "🔴", note: "基本はパワー" },
+            { id: "02", name: "ムーファ", cat: "草食", normal: "⚪", note: "おとなしい" },
+            { id: "03", name: "タルアイルー", cat: "草食", normal: "💨", note: "すぐ逃げる" },
+            { id: "04", name: "ブナハブラ", cat: "草食", normal: "🟢", note: "テクニック主体" },
+            { id: "05", name: "ランポス", cat: "鳥竜", normal: "🔵", note: "スピード主体" },
+            { id: "06", name: "ドスランポス", cat: "鳥竜", normal: "🔵", change: "🔴", label: "怒", note: "怒るとパワー" },
+            { id: "07", name: "ルドロス", cat: "飛竜", normal: "🔴", note: "海竜種：パワー主体" },
+            { id: "08", name: "ロアルドロス", cat: "飛竜", normal: "🔴", change: "🟢", label: "怒", note: "怒るとテクニック" },
+            { id: "09", name: "チャタカブラ", cat: "鳥竜", normal: "🔴", change: "🟢", label: "怒", note: "両生種：怒るとテク" },
+            { id: "10", name: "凶異チャタカブラ", cat: "特殊", normal: "🔴", change: "🟢", label: "怒", note: "凶異：高威力注意" },
+            { id: "11", name: "パオウルムー", cat: "飛竜", normal: "🟢", change: "🔵", label: "怒", note: "膨らむとスピード" },
+            { id: "12", name: "イャンクック", cat: "鳥竜", normal: "🟢", change: "🔵", label: "怒", note: "怒るとスピード" },
+            { id: "13", name: "イャンクック亜種", cat: "鳥竜", normal: "🟢", change: "🔵", label: "怒", note: "通常種と同じ傾向" },
+            { id: "14", name: "凶異イャンクック", cat: "特殊", normal: "🟢", change: "🔵", label: "様", note: "凶異：様子見でスピード" },
+            { id: "15", name: "ゲリョス", cat: "鳥竜", normal: "🔴", change: "🟢", label: "怒", note: "怒るとテクニック" },
+            { id: "16", name: "ゲリョス亜種", cat: "鳥竜", normal: "🔴", change: "🟢", label: "怒", note: "毒攻撃多用" },
+            { id: "17", name: "ネルスキュラ", cat: "特殊", normal: "🟢", change: "🔵", label: "怒", note: "鋏角種：怒るとスピード" },
+            { id: "18", name: "凶異ネルスキュラ", cat: "特殊", normal: "🟢", change: "🔵", label: "怒", note: "凶異：素早さ注意" },
+            { id: "19", name: "トビカガチ", cat: "飛竜", normal: "🔵", extra: "⚪", label: "怒", note: "牙竜種：帯電に注意" },
+            { id: "20", name: "ガノトトス", cat: "飛竜", normal: "🔵", extra: "⚪", label: "怒", note: "魚竜種：スピード主体" },
+            { id: "21", name: "ガノトトス亜種", cat: "飛竜", normal: "🔵", extra: "⚪", label: "怒", note: "強力なブレス注意" },
+            { id: "22", name: "アンジャナフ", cat: "飛竜", normal: "🔴", extra: "⚪", label: "怒", note: "獣竜種：パワー主体" },
+            { id: "23", name: "リオレイア", cat: "飛竜", normal: "🔵", change: "🔴", label: "怒", note: "怒るとパワー" },
+            { id: "24", name: "リオレイア亜種", cat: "飛竜", normal: "🔵", change: "🔴", label: "怒", note: "通常種より攻撃的" },
+            { id: "25", name: "紫毒姫リオレイア", cat: "特殊", normal: "🔵", change: "🔴", label: "怒", note: "二つ名：劇毒注意" },
+            { id: "26", name: "侵獣イャンガルルガ", cat: "特殊", normal: "🟢", change: "🔵", label: "様", note: "侵獣：変則行動" },
+            { id: "27", name: "強化竜ディノバルド", cat: "特殊", normal: "🔵", change: "🟢", label: "怒", extra: "🔴", exLabel: "様", note: "全タイプ使用の強敵" },
+            { id: "28", name: "凶異ブラキディオス", cat: "特殊", normal: "🔴", change: "⚪", label: "様", note: "凶異：粘菌に注意" },
+            { id: "29", name: "ネロミェール", cat: "特殊", normal: "🟢", change: "🔵", label: "電", extra: "🔴", exLabel: "脱", note: "古龍：3形態変化" }
+        ];
+
+        function renderMonsters(filter) {
+            const list = document.getElementById('monster-list');
+            list.innerHTML = '';
+            
+            const filtered = filter === 'all' ? monsters : monsters.filter(m => m.cat === filter);
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<p class="p-10 text-center text-slate-400">モンスターが見つかりませんでした。</p>';
+                return;
+            }
+
+            filtered.forEach(m => {
+                const item = document.createElement('div');
+                item.className = `monster-card p-4 flex items-center justify-between border-b border-slate-100 ${m.cat === '特殊' ? 'bg-indigo-50/30' : ''}`;
+                
+                let iconsHtml = `
+                    <div class="flex flex-col items-center min-w-[45px]">
+                        <span class="text-2xl">${m.normal}</span>
+                        <span class="type-label">通常</span>
+                    </div>
+                `;
+
+                if (m.change) {
+                    iconsHtml += `
+                        <div class="text-slate-300 mx-1 text-xs">▶</div>
+                        <div class="flex flex-col items-center min-w-[45px]">
+                            <span class="text-2xl">${m.change}</span>
+                            <span class="type-label">${m.label}</span>
+                        </div>
+                    `;
+                }
+
+                if (m.extra) {
+                    iconsHtml += `
+                        <div class="text-slate-300 mx-1 text-xs">▶</div>
+                        <div class="flex flex-col items-center min-w-[45px]">
+                            <span class="text-2xl">${m.extra}</span>
+                            <span class="type-label">${m.exLabel || '他'}</span>
+                        </div>
+                    `;
+                }
+
+                item.innerHTML = `
+                    <div class="flex-1 pr-3">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[9px] font-mono text-slate-300">#${m.id}</span>
+                            <h2 class="font-black text-sm text-slate-800">${m.name}</h2>
+                        </div>
+                        <p class="text-[10px] text-slate-400 leading-tight mt-0.5">${m.note}</p>
+                    </div>
+                    <div class="flex items-center">
+                        ${iconsHtml}
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function filterType(type) {
+            // Update buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${type}`).classList.add('active');
+            
+            // Re-render
+            renderMonsters(type);
+        }
+
+        // Initial Load
+        renderMonsters('all');
+    </script>
+
+    <footer class="fixed bottom-0 left-0 right-0 p-2 bg-slate-900 text-[9px] text-slate-500 text-center tracking-widest font-bold">
+        MHST3 MONSTER ENCYCLOPEDIA - TRIAL VERSION
+    </footer>
+
+</body>
+</html>
+
