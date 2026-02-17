@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Egg Breaker - Tab Navigation Edition</title>
+    <title>Egg Breaker - SE Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes shake {
@@ -52,7 +52,6 @@
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* Active tab indicator */
         .tab-active {
             color: #2563eb;
             border-bottom: 2px solid #2563eb;
@@ -81,19 +80,16 @@
 
     <!-- Main Game Container -->
     <div id="game-screen" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center relative">
-        <!-- Counter -->
         <div class="mb-4 text-center">
             <span class="text-sm font-semibold text-gray-500 uppercase tracking-widest">残りタップ数</span>
             <div id="tap-count" class="text-5xl font-black text-blue-600">100</div>
         </div>
 
-        <!-- Egg Container -->
         <div id="egg-container" class="relative w-64 h-80 flex items-center justify-center cursor-pointer mb-6 transition-transform active:scale-95">
             <div id="egg" class="egg-gradient w-48 h-64 rounded-[50%_50%_50%_50%_/_60%_60%_40%_40%] shadow-lg border-2 border-gray-200 relative overflow-hidden">
                 <div id="cracks" class="absolute inset-0 pointer-events-none"></div>
             </div>
             
-            <!-- Result Popup -->
             <div id="result-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 rounded-3xl hidden z-10 text-center p-4">
                 <div id="item-rarity-label" class="text-xs font-bold px-2 py-1 rounded mb-1"></div>
                 <div id="item-emoji" class="text-7xl mb-4">🎁</div>
@@ -104,12 +100,10 @@
             </div>
         </div>
 
-        <!-- Progress Bar -->
         <div class="w-full bg-gray-200 rounded-full h-4 mb-8 overflow-hidden">
             <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-100" style="width: 0%"></div>
         </div>
 
-        <!-- Tabs Navigation -->
         <div class="w-full flex border-t pt-4">
             <button class="nav-to-game flex-1 py-2 font-bold tab-active">ゲーム</button>
             <button class="nav-to-collection flex-1 py-2 font-bold tab-inactive">図鑑 (<span class="collected-total-display">0</span>/20)</button>
@@ -125,7 +119,6 @@
             </div>
         </div>
 
-        <!-- Rarity Stats Panel -->
         <div class="w-full bg-blue-50 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-3 text-xs">
             <div class="bg-white p-2 rounded-lg border border-gray-100">
                 <span class="text-gray-500 font-bold">Common:</span> <span id="stat-common" class="font-bold rarity-common">0/7</span>
@@ -153,12 +146,10 @@
             </div>
         </div>
 
-        <!-- Scrollable Grid -->
         <div id="collection-grid" class="w-full grid grid-cols-4 gap-3 overflow-y-auto max-h-64 mb-6 px-1 py-1"></div>
 
         <button id="clear-data" class="w-full mb-4 text-[10px] text-red-300 hover:text-red-500 transition underline">データをすべて消去する</button>
 
-        <!-- Tabs Navigation -->
         <div class="w-full flex border-t pt-4">
             <button class="nav-to-game flex-1 py-2 font-bold tab-inactive">ゲーム</button>
             <button class="nav-to-collection flex-1 py-2 font-bold tab-active">図鑑 (<span class="collected-total-display">0</span>/20)</button>
@@ -166,10 +157,9 @@
     </div>
 
     <script>
-        // --- Audio Logic ---
+        // --- Audio Logic (SE Only) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let soundEnabled = false;
-        let bgmNode = null;
 
         function playSound(freq, type, duration, vol = 0.1) {
             if (!soundEnabled) return;
@@ -215,25 +205,6 @@
             }
         }
 
-        function startBGM() {
-            if (bgmNode) return;
-            bgmNode = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            bgmNode.type = 'triangle';
-            gain.gain.value = 0.02;
-            const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 349.23, 329.63, 293.66];
-            let step = 0;
-            setInterval(() => {
-                if (soundEnabled && bgmNode) {
-                    bgmNode.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
-                    step++;
-                }
-            }, 500);
-            bgmNode.connect(gain);
-            gain.connect(audioCtx.destination);
-            bgmNode.start();
-        }
-
         // --- Game Logic ---
         const MAX_TAPS = 100;
         const ITEMS = [
@@ -260,10 +231,9 @@
         ];
 
         let currentTaps = 0;
-        let collectedIds = JSON.parse(localStorage.getItem('egg_clicker_save_v5')) || [];
+        let collectedIds = JSON.parse(localStorage.getItem('egg_clicker_save_v6')) || [];
         let isBroken = false;
 
-        // Elements
         const gameScreen = document.getElementById('game-screen');
         const collectionScreen = document.getElementById('collection-screen');
         const egg = document.getElementById('egg');
@@ -311,7 +281,6 @@
             if (!soundEnabled) {
                 soundEnabled = true;
                 audioCtx.resume();
-                startBGM();
                 soundToggle.innerText = '🔊';
             }
             currentTaps++;
@@ -349,7 +318,7 @@
                 
                 if (isNew) {
                     collectedIds.push(item.id);
-                    localStorage.setItem('egg_clicker_save_v5', JSON.stringify(collectedIds));
+                    localStorage.setItem('egg_clicker_save_v6', JSON.stringify(collectedIds));
                     updateUI();
                 }
                 
@@ -361,7 +330,6 @@
             }
         }
 
-        // Tab Switching
         function showGame() {
             gameScreen.classList.remove('hidden');
             collectionScreen.classList.add('hidden');
@@ -377,7 +345,7 @@
 
         soundToggle.addEventListener('click', () => {
             soundEnabled = !soundEnabled;
-            if (soundEnabled) { audioCtx.resume(); startBGM(); soundToggle.innerText = '🔊'; }
+            if (soundEnabled) { audioCtx.resume(); soundToggle.innerText = '🔊'; }
             else { soundToggle.innerText = '🔈'; }
         });
 
@@ -395,7 +363,7 @@
         });
 
         document.getElementById('clear-data').addEventListener('click', () => {
-            if(confirm('リセットしますか？')) { collectedIds = []; localStorage.removeItem('egg_clicker_save_v5'); updateUI(); }
+            if(confirm('リセットしますか？')) { collectedIds = []; localStorage.removeItem('egg_clicker_save_v6'); updateUI(); }
         });
 
         updateUI();
