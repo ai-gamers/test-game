@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Egg Breaker - Sound & Delay Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(5deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(-5deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .shake { animation: shake 0.1s ease-in-out; }
+        
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .pop-effect { animation: pop 0.3s ease-out; }
+
+        .egg-gradient {
+            background: radial-gradient(circle at 30% 30%, #ffffff, #f3f4f6, #d1d5db);
+        }
+        
+        .locked {
+            filter: brightness(0) invert(0.2);
+            opacity: 0.5;
+        }
+
+        .rarity-common { color: #6b7280; }
+        .rarity-rare { color: #3b82f6; }
+        .rarity-super-rare { color: #a855f7; }
+        .rarity-legendary { color: #f59e0b; }
+
+        .rarity-bg-common { background-color: #f3f4f6; }
+        .rarity-bg-rare { background-color: #dbeafe; }
+        .rarity-bg-super-rare { background-color: #f3e8ff; }
+        .rarity-bg-legendary { background-color: #fef3c7; }
+
+        /* Button transition for delay */
+        #reset-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(0.95);
+        }
+        #reset-btn:enabled {
+            opacity: 1;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        * { touch-action: manipulation; }
+    </style>
+</head>
+<body class="bg-blue-50 min-h-screen flex flex-col items-center p-4 font-sans">
+
+    <!-- Sound Control -->
+    <div class="fixed top-4 right-4 z-30">
+        <button id="sound-toggle" class="bg-white p-3 rounded-full shadow-md text-xl">
+            🔈
+        </button>
+    </div>
+
+    <!-- Header -->
+    <header class="text-center mb-6">
+        <h1 class="text-3xl font-bold text-blue-800">卵割りガチャ</h1>
+        <p class="text-gray-600">100回タップで卵が割れるよ！</p>
+    </header>
+
+    <!-- Game Area -->
+    <div class="relative w-full max-w-md bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center">
+        <!-- Counter -->
+        <div class="mb-4 text-center">
+            <span class="text-sm font-semibold text-gray-500 uppercase tracking-widest">残りタップ数</span>
+            <div id="tap-count" class="text-5xl font-black text-blue-600">100</div>
+        </div>
+
+        <!-- Egg Container -->
+        <div id="egg-container" class="relative w-64 h-80 flex items-center justify-center cursor-pointer mb-6 transition-transform active:scale-95">
+            <div id="egg" class="egg-gradient w-48 h-64 rounded-[50%_50%_50%_50%_/_60%_60%_40%_40%] shadow-lg border-2 border-gray-200 relative overflow-hidden">
+                <div id="cracks" class="absolute inset-0 pointer-events-none"></div>
+            </div>
+            
+            <!-- Result Popup -->
+            <div id="result-overlay" class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 rounded-3xl hidden z-10 text-center p-4">
+                <div id="item-rarity-label" class="text-xs font-bold px-2 py-1 rounded mb-1"></div>
+                <div id="item-emoji" class="text-7xl mb-4">🎁</div>
+                <h2 id="item-name" class="text-2xl font-bold text-gray-800 mb-2">アイテム名</h2>
+                <p id="new-badge" class="text-xs font-bold text-red-500 mb-4 hidden">✨ 新発見！ ✨</p>
+                <p id="already-badge" class="text-xs font-bold text-gray-400 mb-4 hidden">獲得済み</p>
+                <button id="reset-btn" disabled class="bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition">次の卵へ</button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-200 rounded-full h-4 mb-8 overflow-hidden">
+            <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-100" style="width: 0%"></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="w-full flex border-t pt-4">
+            <button id="view-game" class="flex-1 py-2 font-bold text-blue-600 border-b-2 border-blue-600">ゲーム</button>
+            <button id="view-collection" class="flex-1 py-2 font-bold text-gray-400 hover:text-blue-500 transition">図鑑 (<span id="collected-total">0</span>/20)</button>
+        </div>
+    </div>
+
+    <!-- Collection Screen -->
+    <div id="collection-screen" class="fixed inset-0 bg-white z-20 hidden overflow-y-auto p-6">
+        <div class="max-w-md mx-auto">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">アイテム図鑑</h2>
+                    <p class="text-sm text-gray-500">合計: <span id="collection-count-sub">0</span> / 20</p>
+                </div>
+                <button id="close-collection" class="text-gray-500 text-4xl leading-none">&times;</button>
+            </div>
+
+            <div class="bg-blue-50 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-3 text-xs">
+                <div class="bg-white p-2 rounded-lg border border-gray-100">
+                    <span class="text-gray-500 font-bold">Common:</span> <span id="stat-common" class="font-bold rarity-common">0/7</span>
+                    <div class="w-full bg-gray-100 h-1.5 mt-1 rounded-full overflow-hidden">
+                        <div id="bar-common" class="bg-gray-400 h-full" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-blue-100">
+                    <span class="text-blue-500 font-bold">Rare:</span> <span id="stat-rare" class="font-bold rarity-rare">0/6</span>
+                    <div class="w-full bg-blue-100 h-1.5 mt-1 rounded-full overflow-hidden">
+                        <div id="bar-rare" class="bg-blue-500 h-full" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-purple-100">
+                    <span class="text-purple-500 font-bold">S.Rare:</span> <span id="stat-super-rare" class="font-bold rarity-super-rare">0/5</span>
+                    <div class="w-full bg-purple-100 h-1.5 mt-1 rounded-full overflow-hidden">
+                        <div id="bar-super-rare" class="bg-purple-500 h-full" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="bg-white p-2 rounded-lg border border-yellow-100">
+                    <span class="text-yellow-600 font-bold">Legendary:</span> <span id="stat-legendary" class="font-bold rarity-legendary">0/2</span>
+                    <div class="w-full bg-yellow-100 h-1.5 mt-1 rounded-full overflow-hidden">
+                        <div id="bar-legendary" class="bg-yellow-500 h-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="collection-grid" class="grid grid-cols-4 gap-4 pb-10"></div>
+            <button id="clear-data" class="w-full py-3 text-xs text-red-300 hover:text-red-500 transition underline">データをすべて消去する</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Audio Logic ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = false;
+        let bgmNode = null;
+
+        function playSound(freq, type, duration, vol = 0.1) {
+            if (!soundEnabled) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playCrackSound() {
+            playSound(1500, 'square', 0.1, 0.05);
+        }
+
+        function playWinSound(rarity) {
+            const now = audioCtx.currentTime;
+            const playNote = (f, t, d) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(f, now + t);
+                gain.gain.setValueAtTime(0.1, now + t);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + t + d);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + t);
+                osc.stop(now + t + d);
+            };
+
+            if (rarity === "Common") {
+                playNote(440, 0, 0.3); playNote(523, 0.1, 0.3);
+            } else if (rarity === "Rare") {
+                playNote(523, 0, 0.3); playNote(659, 0.1, 0.3); playNote(783, 0.2, 0.4);
+            } else if (rarity === "Super Rare") {
+                [523, 659, 783, 1046].forEach((f, i) => playNote(f, i * 0.08, 0.5));
+            } else if (rarity === "Legendary") {
+                [523, 659, 783, 1046, 783, 1046, 1318].forEach((f, i) => playNote(f, i * 0.1, 0.6));
+            }
+        }
+
+        function startBGM() {
+            if (bgmNode) return;
+            bgmNode = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            bgmNode.type = 'triangle';
+            gain.gain.value = 0.02;
+            
+            const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 349.23, 329.63, 293.66];
+            let step = 0;
+            
+            setInterval(() => {
+                if (soundEnabled && bgmNode) {
+                    bgmNode.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+                    step++;
+                }
+            }, 500);
+
+            bgmNode.connect(gain);
+            gain.connect(audioCtx.destination);
+            bgmNode.start();
+        }
+
+        // --- Game Logic ---
+        const MAX_TAPS = 100;
+        const ITEMS = [
+            { id: 1, name: "ひよこ", emoji: "🐣", rarity: "Common" },
+            { id: 2, name: "ロボット", emoji: "🤖", rarity: "Common" },
+            { id: 3, name: "ダイヤ", emoji: "💎", rarity: "Rare" },
+            { id: 4, name: "ピザ", emoji: "🍕", rarity: "Common" },
+            { id: 5, name: "宇宙人", emoji: "👽", rarity: "Rare" },
+            { id: 6, name: "ユニコーン", emoji: "🦄", rarity: "Super Rare" },
+            { id: 7, name: "おばけ", emoji: "👻", rarity: "Common" },
+            { id: 8, name: "ロケット", emoji: "🚀", rarity: "Rare" },
+            { id: 9, name: "恐竜", emoji: "🦖", rarity: "Rare" },
+            { id: 10, name: "王冠", emoji: "👑", rarity: "Super Rare" },
+            { id: 11, name: "パンダ", emoji: "🐼", rarity: "Common" },
+            { id: 12, name: "お寿司", emoji: "🍣", rarity: "Common" },
+            { id: 13, name: "忍者", emoji: "🥷", rarity: "Rare" },
+            { id: 14, name: "ドラゴン", emoji: "🐉", rarity: "Super Rare" },
+            { id: 15, name: "杖", emoji: "🪄", rarity: "Rare" },
+            { id: 16, name: "バーガー", emoji: "🍔", rarity: "Common" },
+            { id: 17, name: "猫", emoji: "🐱", rarity: "Common" },
+            { id: 18, name: "流れ星", emoji: "💫", rarity: "Super Rare" },
+            { id: 19, name: "金塊", emoji: "📀", rarity: "Super Rare" },
+            { id: 20, name: "伝説の剣", emoji: "⚔️", rarity: "Legendary" }
+        ];
+
+        let currentTaps = 0;
+        let collectedIds = JSON.parse(localStorage.getItem('egg_clicker_save_v4')) || [];
+        let isBroken = false;
+
+        const egg = document.getElementById('egg');
+        const cracks = document.getElementById('cracks');
+        const tapCountDisplay = document.getElementById('tap-count');
+        const progressBar = document.getElementById('progress-bar');
+        const resultOverlay = document.getElementById('result-overlay');
+        const itemEmojiDisplay = document.getElementById('item-emoji');
+        const itemNameDisplay = document.getElementById('item-name');
+        const itemRarityLabel = document.getElementById('item-rarity-label');
+        const resetBtn = document.getElementById('reset-btn');
+        const soundToggle = document.getElementById('sound-toggle');
+
+        function updateUI() {
+            document.getElementById('collected-total').innerText = collectedIds.length;
+            document.getElementById('collection-count-sub').innerText = collectedIds.length;
+            const stats = { Common:0, Rare:0, "Super Rare":0, Legendary:0 };
+            const totals = { Common:7, Rare:6, "Super Rare":5, Legendary:2 };
+            
+            ITEMS.forEach(it => { if(collectedIds.includes(it.id)) stats[it.rarity]++; });
+            
+            const map = { Common:'common', Rare:'rare', "Super Rare":'super-rare', Legendary:'legendary' };
+            Object.keys(map).forEach(key => {
+                document.getElementById(`stat-${map[key]}`).innerText = `${stats[key]}/${totals[key]}`;
+                document.getElementById(`bar-${map[key]}`).style.width = (stats[key]/totals[key]*100)+'%';
+            });
+
+            const grid = document.getElementById('collection-grid');
+            grid.innerHTML = '';
+            ITEMS.forEach(item => {
+                const got = collectedIds.includes(item.id);
+                const rarityKey = item.rarity.toLowerCase().replace(' ', '-');
+                const div = document.createElement('div');
+                div.className = `flex flex-col items-center p-2 border rounded-xl ${got ? `rarity-bg-${rarityKey} border-white shadow-sm` : 'bg-gray-50'}`;
+                div.innerHTML = `
+                    <div class="text-3xl mb-1 ${got ? '' : 'locked'}">${got ? item.emoji : '❓'}</div>
+                    <div class="text-[8px] font-bold ${got ? `rarity-${rarityKey}` : 'text-gray-300'} uppercase">${item.rarity}</div>
+                    <div class="text-[10px] text-center font-bold truncate w-full ${got ? 'text-gray-800' : 'text-gray-400'}">${got ? item.name : '???'}</div>
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        function handleTap() {
+            if (isBroken) return;
+            if (!soundEnabled) {
+                soundEnabled = true;
+                audioCtx.resume();
+                startBGM();
+                soundToggle.innerText = '🔊';
+            }
+            
+            currentTaps++;
+            tapCountDisplay.innerText = Math.max(0, MAX_TAPS - currentTaps);
+            progressBar.style.width = (currentTaps/MAX_TAPS*100)+'%';
+            
+            egg.classList.remove('shake');
+            void egg.offsetWidth;
+            egg.classList.add('shake');
+
+            if (currentTaps % 10 === 0 && currentTaps < MAX_TAPS) {
+                playCrackSound();
+                const crack = document.createElement('div');
+                crack.className = 'absolute bg-gray-600 opacity-20';
+                crack.style.width = (Math.random()*50+20)+'px';
+                crack.style.height = '1px';
+                crack.style.left = (Math.random()*70+15)+'%';
+                crack.style.top = (Math.random()*70+15)+'%';
+                crack.style.transform = `rotate(${Math.random()*360}deg)`;
+                cracks.appendChild(crack);
+            }
+
+            if (currentTaps >= MAX_TAPS) {
+                isBroken = true;
+                const item = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+                itemEmojiDisplay.innerText = item.emoji;
+                itemNameDisplay.innerText = item.name;
+                itemRarityLabel.innerText = item.rarity;
+                const rKey = item.rarity.toLowerCase().replace(' ', '-');
+                itemRarityLabel.className = `text-xs font-bold px-2 py-0.5 rounded mb-1 rarity-bg-${rKey} rarity-${rKey}`;
+                
+                const isNew = !collectedIds.includes(item.id);
+                document.getElementById('new-badge').classList.toggle('hidden', !isNew);
+                document.getElementById('already-badge').classList.toggle('hidden', isNew);
+                
+                if (isNew) {
+                    collectedIds.push(item.id);
+                    localStorage.setItem('egg_clicker_save_v4', JSON.stringify(collectedIds));
+                    updateUI();
+                }
+                
+                playWinSound(item.rarity);
+                resultOverlay.classList.remove('hidden');
+                resultOverlay.classList.add('pop-effect');
+
+                // Delay enable reset button
+                resetBtn.disabled = true;
+                setTimeout(() => {
+                    resetBtn.disabled = false;
+                }, 1000);
+            }
+        }
+
+        soundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            if (soundEnabled) {
+                audioCtx.resume();
+                startBGM();
+                soundToggle.innerText = '🔊';
+            } else {
+                soundToggle.innerText = '🔈';
+            }
+        });
+
+        document.getElementById('egg-container').addEventListener('click', (e) => {
+            if (!e.target.closest('#result-overlay')) handleTap();
+        });
+        
+        resetBtn.addEventListener('click', () => {
+            currentTaps = 0; isBroken = false;
+            tapCountDisplay.innerText = MAX_TAPS;
+            progressBar.style.width = '0%';
+            cracks.innerHTML = '';
+            resultOverlay.classList.add('hidden');
+            resetBtn.disabled = true; // Reset for next time
+        });
+
+        document.getElementById('view-collection').addEventListener('click', () => document.getElementById('collection-screen').classList.remove('hidden'));
+        document.getElementById('close-collection').addEventListener('click', () => document.getElementById('collection-screen').classList.add('hidden'));
+        document.getElementById('clear-data').addEventListener('click', () => {
+            if(confirm('リセットしますか？')) { collectedIds = []; localStorage.removeItem('egg_clicker_save_v4'); updateUI(); }
+        });
+
+        updateUI();
+    </script>
+</body>
+</html>
+
