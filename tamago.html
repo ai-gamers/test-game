@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Egg Breaker - Sound & Delay Edition</title>
+    <title>Egg Breaker - Tab Navigation Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes shake {
@@ -41,7 +41,6 @@
         .rarity-bg-super-rare { background-color: #f3e8ff; }
         .rarity-bg-legendary { background-color: #fef3c7; }
 
-        /* Button transition for delay */
         #reset-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -51,6 +50,15 @@
             opacity: 1;
             cursor: pointer;
             transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Active tab indicator */
+        .tab-active {
+            color: #2563eb;
+            border-bottom: 2px solid #2563eb;
+        }
+        .tab-inactive {
+            color: #9ca3af;
         }
 
         * { touch-action: manipulation; }
@@ -71,8 +79,8 @@
         <p class="text-gray-600">100回タップで卵が割れるよ！</p>
     </header>
 
-    <!-- Game Area -->
-    <div class="relative w-full max-w-md bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center">
+    <!-- Main Game Container -->
+    <div id="game-screen" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center relative">
         <!-- Counter -->
         <div class="mb-4 text-center">
             <span class="text-sm font-semibold text-gray-500 uppercase tracking-widest">残りタップ数</span>
@@ -101,53 +109,59 @@
             <div id="progress-bar" class="bg-blue-500 h-full transition-all duration-100" style="width: 0%"></div>
         </div>
 
-        <!-- Tabs -->
+        <!-- Tabs Navigation -->
         <div class="w-full flex border-t pt-4">
-            <button id="view-game" class="flex-1 py-2 font-bold text-blue-600 border-b-2 border-blue-600">ゲーム</button>
-            <button id="view-collection" class="flex-1 py-2 font-bold text-gray-400 hover:text-blue-500 transition">図鑑 (<span id="collected-total">0</span>/20)</button>
+            <button class="nav-to-game flex-1 py-2 font-bold tab-active">ゲーム</button>
+            <button class="nav-to-collection flex-1 py-2 font-bold tab-inactive">図鑑 (<span class="collected-total-display">0</span>/20)</button>
         </div>
     </div>
 
-    <!-- Collection Screen -->
-    <div id="collection-screen" class="fixed inset-0 bg-white z-20 hidden overflow-y-auto p-6">
-        <div class="max-w-md mx-auto">
-            <div class="flex justify-between items-start mb-4">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">アイテム図鑑</h2>
-                    <p class="text-sm text-gray-500">合計: <span id="collection-count-sub">0</span> / 20</p>
-                </div>
-                <button id="close-collection" class="text-gray-500 text-4xl leading-none">&times;</button>
+    <!-- Collection Screen Container -->
+    <div id="collection-screen" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 flex flex-col items-center relative hidden">
+        <div class="w-full flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">アイテム図鑑</h2>
+                <p class="text-sm text-gray-500">合計: <span id="collection-count-sub">0</span> / 20</p>
             </div>
+        </div>
 
-            <div class="bg-blue-50 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-3 text-xs">
-                <div class="bg-white p-2 rounded-lg border border-gray-100">
-                    <span class="text-gray-500 font-bold">Common:</span> <span id="stat-common" class="font-bold rarity-common">0/7</span>
-                    <div class="w-full bg-gray-100 h-1.5 mt-1 rounded-full overflow-hidden">
-                        <div id="bar-common" class="bg-gray-400 h-full" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="bg-white p-2 rounded-lg border border-blue-100">
-                    <span class="text-blue-500 font-bold">Rare:</span> <span id="stat-rare" class="font-bold rarity-rare">0/6</span>
-                    <div class="w-full bg-blue-100 h-1.5 mt-1 rounded-full overflow-hidden">
-                        <div id="bar-rare" class="bg-blue-500 h-full" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="bg-white p-2 rounded-lg border border-purple-100">
-                    <span class="text-purple-500 font-bold">S.Rare:</span> <span id="stat-super-rare" class="font-bold rarity-super-rare">0/5</span>
-                    <div class="w-full bg-purple-100 h-1.5 mt-1 rounded-full overflow-hidden">
-                        <div id="bar-super-rare" class="bg-purple-500 h-full" style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="bg-white p-2 rounded-lg border border-yellow-100">
-                    <span class="text-yellow-600 font-bold">Legendary:</span> <span id="stat-legendary" class="font-bold rarity-legendary">0/2</span>
-                    <div class="w-full bg-yellow-100 h-1.5 mt-1 rounded-full overflow-hidden">
-                        <div id="bar-legendary" class="bg-yellow-500 h-full" style="width: 0%"></div>
-                    </div>
+        <!-- Rarity Stats Panel -->
+        <div class="w-full bg-blue-50 rounded-2xl p-4 mb-6 grid grid-cols-2 gap-3 text-xs">
+            <div class="bg-white p-2 rounded-lg border border-gray-100">
+                <span class="text-gray-500 font-bold">Common:</span> <span id="stat-common" class="font-bold rarity-common">0/7</span>
+                <div class="w-full bg-gray-100 h-1.5 mt-1 rounded-full overflow-hidden">
+                    <div id="bar-common" class="bg-gray-400 h-full" style="width: 0%"></div>
                 </div>
             </div>
+            <div class="bg-white p-2 rounded-lg border border-blue-100">
+                <span class="text-blue-500 font-bold">Rare:</span> <span id="stat-rare" class="font-bold rarity-rare">0/6</span>
+                <div class="w-full bg-blue-100 h-1.5 mt-1 rounded-full overflow-hidden">
+                    <div id="bar-rare" class="bg-blue-500 h-full" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="bg-white p-2 rounded-lg border border-purple-100">
+                <span class="text-purple-500 font-bold">S.Rare:</span> <span id="stat-super-rare" class="font-bold rarity-super-rare">0/5</span>
+                <div class="w-full bg-purple-100 h-1.5 mt-1 rounded-full overflow-hidden">
+                    <div id="bar-super-rare" class="bg-purple-500 h-full" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="bg-white p-2 rounded-lg border border-yellow-100">
+                <span class="text-yellow-600 font-bold">Legendary:</span> <span id="stat-legendary" class="font-bold rarity-legendary">0/2</span>
+                <div class="w-full bg-yellow-100 h-1.5 mt-1 rounded-full overflow-hidden">
+                    <div id="bar-legendary" class="bg-yellow-500 h-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
 
-            <div id="collection-grid" class="grid grid-cols-4 gap-4 pb-10"></div>
-            <button id="clear-data" class="w-full py-3 text-xs text-red-300 hover:text-red-500 transition underline">データをすべて消去する</button>
+        <!-- Scrollable Grid -->
+        <div id="collection-grid" class="w-full grid grid-cols-4 gap-3 overflow-y-auto max-h-64 mb-6 px-1 py-1"></div>
+
+        <button id="clear-data" class="w-full mb-4 text-[10px] text-red-300 hover:text-red-500 transition underline">データをすべて消去する</button>
+
+        <!-- Tabs Navigation -->
+        <div class="w-full flex border-t pt-4">
+            <button class="nav-to-game flex-1 py-2 font-bold tab-inactive">ゲーム</button>
+            <button class="nav-to-collection flex-1 py-2 font-bold tab-active">図鑑 (<span class="collected-total-display">0</span>/20)</button>
         </div>
     </div>
 
@@ -207,17 +221,14 @@
             const gain = audioCtx.createGain();
             bgmNode.type = 'triangle';
             gain.gain.value = 0.02;
-            
             const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 349.23, 329.63, 293.66];
             let step = 0;
-            
             setInterval(() => {
                 if (soundEnabled && bgmNode) {
                     bgmNode.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
                     step++;
                 }
             }, 500);
-
             bgmNode.connect(gain);
             gain.connect(audioCtx.destination);
             bgmNode.start();
@@ -249,26 +260,28 @@
         ];
 
         let currentTaps = 0;
-        let collectedIds = JSON.parse(localStorage.getItem('egg_clicker_save_v4')) || [];
+        let collectedIds = JSON.parse(localStorage.getItem('egg_clicker_save_v5')) || [];
         let isBroken = false;
 
+        // Elements
+        const gameScreen = document.getElementById('game-screen');
+        const collectionScreen = document.getElementById('collection-screen');
         const egg = document.getElementById('egg');
         const cracks = document.getElementById('cracks');
         const tapCountDisplay = document.getElementById('tap-count');
         const progressBar = document.getElementById('progress-bar');
         const resultOverlay = document.getElementById('result-overlay');
-        const itemEmojiDisplay = document.getElementById('item-emoji');
-        const itemNameDisplay = document.getElementById('item-name');
-        const itemRarityLabel = document.getElementById('item-rarity-label');
         const resetBtn = document.getElementById('reset-btn');
         const soundToggle = document.getElementById('sound-toggle');
+        const totalsDisplays = document.querySelectorAll('.collected-total-display');
 
         function updateUI() {
-            document.getElementById('collected-total').innerText = collectedIds.length;
-            document.getElementById('collection-count-sub').innerText = collectedIds.length;
+            const count = collectedIds.length;
+            totalsDisplays.forEach(el => el.innerText = count);
+            document.getElementById('collection-count-sub').innerText = count;
+
             const stats = { Common:0, Rare:0, "Super Rare":0, Legendary:0 };
             const totals = { Common:7, Rare:6, "Super Rare":5, Legendary:2 };
-            
             ITEMS.forEach(it => { if(collectedIds.includes(it.id)) stats[it.rarity]++; });
             
             const map = { Common:'common', Rare:'rare', "Super Rare":'super-rare', Legendary:'legendary' };
@@ -286,8 +299,8 @@
                 div.className = `flex flex-col items-center p-2 border rounded-xl ${got ? `rarity-bg-${rarityKey} border-white shadow-sm` : 'bg-gray-50'}`;
                 div.innerHTML = `
                     <div class="text-3xl mb-1 ${got ? '' : 'locked'}">${got ? item.emoji : '❓'}</div>
-                    <div class="text-[8px] font-bold ${got ? `rarity-${rarityKey}` : 'text-gray-300'} uppercase">${item.rarity}</div>
-                    <div class="text-[10px] text-center font-bold truncate w-full ${got ? 'text-gray-800' : 'text-gray-400'}">${got ? item.name : '???'}</div>
+                    <div class="text-[7px] font-bold ${got ? `rarity-${rarityKey}` : 'text-gray-300'} uppercase leading-none">${item.rarity}</div>
+                    <div class="text-[9px] text-center font-bold truncate w-full mt-1 ${got ? 'text-gray-800' : 'text-gray-400'}">${got ? item.name : '???'}</div>
                 `;
                 grid.appendChild(div);
             });
@@ -301,11 +314,9 @@
                 startBGM();
                 soundToggle.innerText = '🔊';
             }
-            
             currentTaps++;
             tapCountDisplay.innerText = Math.max(0, MAX_TAPS - currentTaps);
             progressBar.style.width = (currentTaps/MAX_TAPS*100)+'%';
-            
             egg.classList.remove('shake');
             void egg.offsetWidth;
             egg.classList.add('shake');
@@ -325,11 +336,12 @@
             if (currentTaps >= MAX_TAPS) {
                 isBroken = true;
                 const item = ITEMS[Math.floor(Math.random()*ITEMS.length)];
-                itemEmojiDisplay.innerText = item.emoji;
-                itemNameDisplay.innerText = item.name;
-                itemRarityLabel.innerText = item.rarity;
+                document.getElementById('item-emoji').innerText = item.emoji;
+                document.getElementById('item-name').innerText = item.name;
+                const label = document.getElementById('item-rarity-label');
+                label.innerText = item.rarity;
                 const rKey = item.rarity.toLowerCase().replace(' ', '-');
-                itemRarityLabel.className = `text-xs font-bold px-2 py-0.5 rounded mb-1 rarity-bg-${rKey} rarity-${rKey}`;
+                label.className = `text-xs font-bold px-2 py-0.5 rounded mb-1 rarity-bg-${rKey} rarity-${rKey}`;
                 
                 const isNew = !collectedIds.includes(item.id);
                 document.getElementById('new-badge').classList.toggle('hidden', !isNew);
@@ -337,31 +349,36 @@
                 
                 if (isNew) {
                     collectedIds.push(item.id);
-                    localStorage.setItem('egg_clicker_save_v4', JSON.stringify(collectedIds));
+                    localStorage.setItem('egg_clicker_save_v5', JSON.stringify(collectedIds));
                     updateUI();
                 }
                 
                 playWinSound(item.rarity);
                 resultOverlay.classList.remove('hidden');
                 resultOverlay.classList.add('pop-effect');
-
-                // Delay enable reset button
                 resetBtn.disabled = true;
-                setTimeout(() => {
-                    resetBtn.disabled = false;
-                }, 1000);
+                setTimeout(() => resetBtn.disabled = false, 1000);
             }
         }
 
+        // Tab Switching
+        function showGame() {
+            gameScreen.classList.remove('hidden');
+            collectionScreen.classList.add('hidden');
+        }
+        function showCollection() {
+            gameScreen.classList.add('hidden');
+            collectionScreen.classList.remove('hidden');
+            updateUI();
+        }
+
+        document.querySelectorAll('.nav-to-game').forEach(b => b.addEventListener('click', showGame));
+        document.querySelectorAll('.nav-to-collection').forEach(b => b.addEventListener('click', showCollection));
+
         soundToggle.addEventListener('click', () => {
             soundEnabled = !soundEnabled;
-            if (soundEnabled) {
-                audioCtx.resume();
-                startBGM();
-                soundToggle.innerText = '🔊';
-            } else {
-                soundToggle.innerText = '🔈';
-            }
+            if (soundEnabled) { audioCtx.resume(); startBGM(); soundToggle.innerText = '🔊'; }
+            else { soundToggle.innerText = '🔈'; }
         });
 
         document.getElementById('egg-container').addEventListener('click', (e) => {
@@ -374,13 +391,11 @@
             progressBar.style.width = '0%';
             cracks.innerHTML = '';
             resultOverlay.classList.add('hidden');
-            resetBtn.disabled = true; // Reset for next time
+            resetBtn.disabled = true;
         });
 
-        document.getElementById('view-collection').addEventListener('click', () => document.getElementById('collection-screen').classList.remove('hidden'));
-        document.getElementById('close-collection').addEventListener('click', () => document.getElementById('collection-screen').classList.add('hidden'));
         document.getElementById('clear-data').addEventListener('click', () => {
-            if(confirm('リセットしますか？')) { collectedIds = []; localStorage.removeItem('egg_clicker_save_v4'); updateUI(); }
+            if(confirm('リセットしますか？')) { collectedIds = []; localStorage.removeItem('egg_clicker_save_v5'); updateUI(); }
         });
 
         updateUI();
