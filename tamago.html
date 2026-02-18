@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Egg Breaker - SE Edition</title>
+    <title>Egg Breaker - Ultimate Rainbow Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @keyframes shake {
@@ -22,10 +22,26 @@
         }
         .pop-effect { animation: pop 0.3s ease-out; }
 
-        .egg-gradient {
+        /* Egg Visual Variants */
+        .egg-normal {
             background: radial-gradient(circle at 30% 30%, #ffffff, #f3f4f6, #d1d5db);
         }
-        
+        .egg-gold {
+            background: radial-gradient(circle at 30% 30%, #fff385, #ffd700, #b8860b);
+            border-color: #ffd700 !important;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+        @keyframes rainbow-bg {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+        .egg-rainbow {
+            background: radial-gradient(circle at 30% 30%, #ffcccc, #ccffcc, #ccccff);
+            border-color: #ffffff !important;
+            animation: rainbow-bg 3s linear infinite;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.6);
+        }
+
         .locked {
             filter: brightness(0) invert(0.2);
             opacity: 0.5;
@@ -75,7 +91,7 @@
     <!-- Header -->
     <header class="text-center mb-6">
         <h1 class="text-3xl font-bold text-blue-800">卵割りガチャ</h1>
-        <p class="text-gray-600">100回タップで卵が割れるよ！</p>
+        <p id="egg-type-label" class="text-sm font-bold text-gray-500 mt-1 uppercase tracking-widest">ノーマル卵</p>
     </header>
 
     <!-- Main Game Container -->
@@ -86,7 +102,7 @@
         </div>
 
         <div id="egg-container" class="relative w-64 h-80 flex items-center justify-center cursor-pointer mb-6 transition-transform active:scale-95">
-            <div id="egg" class="egg-gradient w-48 h-64 rounded-[50%_50%_50%_50%_/_60%_60%_40%_40%] shadow-lg border-2 border-gray-200 relative overflow-hidden">
+            <div id="egg" class="egg-normal w-48 h-64 rounded-[50%_50%_50%_50%_/_60%_60%_40%_40%] shadow-lg border-2 border-gray-200 relative overflow-hidden">
                 <div id="cracks" class="absolute inset-0 pointer-events-none"></div>
             </div>
             
@@ -231,8 +247,9 @@
         ];
 
         let currentTaps = 0;
-        let collectedIds = JSON.parse(localStorage.getItem('egg_clicker_save_v6')) || [];
+        let collectedIds = JSON.parse(localStorage.getItem('egg_clicker_save_v7')) || [];
         let isBroken = false;
+        let currentEggType = "normal"; 
 
         const gameScreen = document.getElementById('game-screen');
         const collectionScreen = document.getElementById('collection-screen');
@@ -244,6 +261,7 @@
         const resetBtn = document.getElementById('reset-btn');
         const soundToggle = document.getElementById('sound-toggle');
         const totalsDisplays = document.querySelectorAll('.collected-total-display');
+        const eggTypeLabel = document.getElementById('egg-type-label');
 
         function updateUI() {
             const count = collectedIds.length;
@@ -276,6 +294,44 @@
             });
         }
 
+        function pickItem() {
+            let weights = [];
+            if (currentEggType === "rainbow") {
+                // Rainbow: 100% Legendary
+                weights = ITEMS.map(item => {
+                    if (item.rarity === "Legendary") return 100;
+                    return 0;
+                });
+            } else if (currentEggType === "gold") {
+                // Gold: Rare(60%), S.Rare(35%), Legendary(5%)
+                weights = ITEMS.map(item => {
+                    if (item.rarity === "Legendary") return 5;
+                    if (item.rarity === "Super Rare") return 35;
+                    if (item.rarity === "Rare") return 60;
+                    if (item.rarity === "Common") return 0;
+                    return 0;
+                });
+            } else {
+                // Normal: Common(74%), Rare(20%), S.Rare(5%), Legendary(1%)
+                weights = ITEMS.map(item => {
+                    if (item.rarity === "Legendary") return 1;
+                    if (item.rarity === "Super Rare") return 5;
+                    if (item.rarity === "Rare") return 20;
+                    if (item.rarity === "Common") return 74;
+                    return 0;
+                });
+            }
+
+            const totalWeight = weights.reduce((a, b) => a + b, 0);
+            let random = Math.random() * totalWeight;
+            
+            for (let i = 0; i < ITEMS.length; i++) {
+                if (random < weights[i]) return ITEMS[i];
+                random -= weights[i];
+            }
+            return ITEMS[0];
+        }
+
         function handleTap() {
             if (isBroken) return;
             if (!soundEnabled) {
@@ -304,7 +360,7 @@
 
             if (currentTaps >= MAX_TAPS) {
                 isBroken = true;
-                const item = ITEMS[Math.floor(Math.random()*ITEMS.length)];
+                const item = pickItem();
                 document.getElementById('item-emoji').innerText = item.emoji;
                 document.getElementById('item-name').innerText = item.name;
                 const label = document.getElementById('item-rarity-label');
@@ -318,7 +374,7 @@
                 
                 if (isNew) {
                     collectedIds.push(item.id);
-                    localStorage.setItem('egg_clicker_save_v6', JSON.stringify(collectedIds));
+                    localStorage.setItem('egg_clicker_save_v7', JSON.stringify(collectedIds));
                     updateUI();
                 }
                 
@@ -327,6 +383,28 @@
                 resultOverlay.classList.add('pop-effect');
                 resetBtn.disabled = true;
                 setTimeout(() => resetBtn.disabled = false, 1000);
+            }
+        }
+
+        function setNewEgg() {
+            const rand = Math.random();
+            egg.classList.remove('egg-normal', 'egg-gold', 'egg-rainbow');
+            
+            if (rand < 0.03) {
+                currentEggType = "rainbow";
+                egg.classList.add('egg-rainbow');
+                eggTypeLabel.innerText = "🌈 虹色の卵 (Legendary確定!)";
+                eggTypeLabel.className = "text-sm font-bold text-purple-500 mt-1 uppercase tracking-widest";
+            } else if (rand < 0.15) {
+                currentEggType = "gold";
+                egg.classList.add('egg-gold');
+                eggTypeLabel.innerText = "✨ 金の卵 (Rare以上確定!)";
+                eggTypeLabel.className = "text-sm font-bold text-yellow-600 mt-1 uppercase tracking-widest";
+            } else {
+                currentEggType = "normal";
+                egg.classList.add('egg-normal');
+                eggTypeLabel.innerText = "ノーマル卵";
+                eggTypeLabel.className = "text-sm font-bold text-gray-500 mt-1 uppercase tracking-widest";
             }
         }
 
@@ -360,10 +438,11 @@
             cracks.innerHTML = '';
             resultOverlay.classList.add('hidden');
             resetBtn.disabled = true;
+            setNewEgg();
         });
 
         document.getElementById('clear-data').addEventListener('click', () => {
-            if(confirm('リセットしますか？')) { collectedIds = []; localStorage.removeItem('egg_clicker_save_v6'); updateUI(); }
+            if(confirm('リセットしますか？')) { collectedIds = []; localStorage.removeItem('egg_clicker_save_v7'); updateUI(); }
         });
 
         updateUI();
