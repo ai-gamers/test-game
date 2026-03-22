@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MHST3 3すくみ50音図鑑</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: #f1f5f9;
+        }
+        
+        .color-power { background-color: #ef4444; color: white; }
+        .color-speed { background-color: #3b82f6; color: white; }
+        .color-tech { background-color: #22c55e; color: white; }
+
+        .btn-line {
+            @apply flex-shrink-0 px-6 py-3 bg-white border border-gray-300 rounded-xl text-lg font-black text-gray-500 transition-all duration-200 shadow-sm;
+            min-width: 60px;
+            text-align: center;
+        }
+        .btn-line.active {
+            @apply bg-blue-600 text-white border-blue-700 shadow-lg scale-110 z-10;
+            outline: 4px solid rgba(37, 99, 235, 0.3);
+        }
+        .btn-line:not(.active):hover {
+            @apply bg-gray-50 border-gray-400 text-gray-800;
+        }
+
+        .type-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-weight: 800;
+            font-size: 0.7rem;
+            width: 95px;
+            white-space: nowrap;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .monster-card {
+            @apply bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-200;
+        }
+        .monster-card:hover {
+            @apply shadow-xl border-blue-200;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="text-gray-800 pb-20">
+
+    <header class="bg-white border-b-2 border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <h1 class="text-2xl font-black text-gray-900 flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-dragon text-blue-600"></i>
+                MHST3 図鑑
+            </h1>
+            <div class="relative w-full md:w-80 flex-shrink-0">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-magnifying-glass text-gray-400"></i>
+                </div>
+                <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 text-base font-bold transition-all outline-none" placeholder="モンスター名で検索...">
+            </div>
+        </div>
+        
+        <div class="bg-gray-50 border-t border-gray-100 overflow-x-auto no-scrollbar">
+            <div class="max-w-6xl mx-auto px-4 py-5 flex gap-3">
+                <button class="btn-line active" data-line="all">すべて</button>
+                <button class="btn-line" data-line="あ">あ</button>
+                <button class="btn-line" data-line="か">か</button>
+                <button class="btn-line" data-line="さ">さ</button>
+                <button class="btn-line" data-line="た">た</button>
+                <button class="btn-line" data-line="な">な</button>
+                <button class="btn-line" data-line="は">は</button>
+                <button class="btn-line" data-line="ま">ま</button>
+                <button class="btn-line" data-line="や">や</button>
+                <button class="btn-line" data-line="ら">ら</button>
+                <button class="btn-line" data-line="わ">わ</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 mt-8">
+        <div class="mb-4 flex justify-between items-end">
+            <p class="text-gray-500 font-bold text-sm">該当モンスター: <span id="resultCount" class="text-blue-600 text-lg">0</span> 体</p>
+        </div>
+
+        <div id="monsterGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- JavaScriptで動的に表示 -->
+        </div>
+
+        <div id="noResults" class="hidden text-center py-24 bg-white rounded-3xl border-4 border-dashed border-gray-200 mt-4">
+            <i class="fa-solid fa-ghost text-5xl text-gray-200 mb-4 block"></i>
+            <p class="text-gray-400 text-xl font-black">該当するモンスターが見つかりません</p>
+        </div>
+    </main>
+
+    <script>
+        // 参考URLの全データ網羅
+        const monsterData = [
+            // あ行
+            { name: "アオアシラ", kana: "あおあしら", element: "無", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] },
+            { name: "アケノシルム", kana: "あけのしるむ", element: "火", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "power" }] },
+            { name: "アジャラカン", kana: "あじゃらかん", element: "火", states: [{ c: "通常", t: "tech" }, { c: "赤熱化", t: "power" }] },
+            { name: "アプトノス", kana: "あぷとのす", element: "無", states: [{ c: "通常", t: "power" }] },
+            { name: "アエンシン", kana: "あえんしん", element: "無", states: [{ c: "通常", t: "tech" }, { c: "厄石解放", t: "power" }, { c: "封龍", t: "power" }] },
+            { name: "アエンシン（最終）", kana: "あえんしんさいしゅう", element: "無", states: [{ c: "通常", t: "tech" }] },
+            { name: "アルシュベルド", kana: "あるしゅべるど", element: "龍", states: [{ c: "通常", t: "tech" }, { c: "龍纏い", t: "power" }] },
+            { name: "アンジャナフ", kana: "あんじゃなふ", element: "火", states: [{ c: "通常", t: "power" }, { c: "炎熱蓄積", t: "tech" }] },
+            { name: "アンジャナフ亜種", kana: "あんじゃなふあしゅ", element: "雷", states: [{ c: "通常", t: "power" }, { c: "帯電", t: "speed" }, { c: "強帯電", t: "speed" }] },
+            { name: "イズチ", kana: "いずち", element: "無", states: [{ c: "通常", t: "speed" }] },
+            { name: "イソネミクニ", kana: "いそねみくに", element: "睡眠", states: [{ c: "通常", t: "tech" }, { c: "尻尾立ち", t: "speed" }, { c: "尻尾立ち【粉溜め】", t: "speed" }] },
+            { name: "イソネミクニ亜種", kana: "いそねみくにあしゅ", element: "爆破", states: [{ c: "通常", t: "tech" }] },
+            { name: "イビルジョー", kana: "いびるじょー", element: "龍", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "speed" }, { c: "飢餓", t: "power" }] },
+            { name: "イブシマキヒコ", kana: "いぶしまきひこ", element: "龍", states: [{ c: "風纏い", t: "power" }, { c: "異体同心", t: "speed" }, { c: "封龍", t: "power" }] },
+            { name: "イヴェルカーナ", kana: "いゔぇるかーな", element: "氷", states: [{ c: "通常", t: "tech" }, { c: "氷纏い", t: "speed" }, { c: "氷霧纏い", t: "power" }] },
+            { name: "イャンクック", kana: "いゃんくっく", element: "火", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "speed" }] },
+            { name: "イャンクック亜種", kana: "いゃんくっくあしゅ", element: "火", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "speed" }] },
+            { name: "イャンガルルガ", kana: "いゃんがるるが", element: "毒", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "power" }] },
+            { name: "ウルクスス", kana: "うるくすす", element: "氷", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "エスピナス", kana: "えすぴなす", element: "毒/火", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "speed" }, { c: "睡眠", t: "power" }] },
+            { name: "オサイズチ", kana: "おさいずち", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "オドガロン", kana: "おどがろん", element: "裂傷", states: [{ c: "通常", t: "speed" }, { c: "飢餓", t: "tech" }, { c: "強暴化", t: "power" }] },
+            { name: "オドガロン亜種", kana: "おどがろんあしゅ", element: "龍", states: [{ c: "通常", t: "speed" }, { c: "飢餓", t: "speed" }, { c: "強暴化", t: "power" }] },
+            { name: "オロミドロ", kana: "おろみどろ", element: "水", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }, { c: "大泥玉", t: "speed" }] },
+            { name: "鏖魔ディアブロス", kana: "おうまでぃあぶろす", element: "無", states: [{ c: "通常", t: "スピード" }] }, // ※表記統一のため後で処理
+            
+            // か行
+            { name: "ガーグァ", kana: "がーぐぁ", element: "無", states: [{ c: "通常", t: "speed" }] },
+            { name: "ガノトトス", kana: "がのととす", element: "水", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "ガノトトス亜種", kana: "がのととすあしゅ", element: "水", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "tech" }] },
+            { name: "ガブラス", kana: "がぶらす", element: "無", states: [{ c: "通常", t: "tech" }] },
+            { name: "ガミザミ", kana: "がみざみ", element: "無", states: [{ c: "通常", t: "power" }] },
+            { name: "ガルク", kana: "がるく", element: "無", states: [{ c: "通常", t: "speed" }] },
+            { name: "ガランゴルム", kana: "がらんごるむ", element: "無", states: [{ c: "通常", t: "power" }, { c: "溶岩纏い", t: "speed" }, { c: "苔纏い", t: "tech" }] },
+            { name: "グラビモス", kana: "ぐらびもす", element: "火", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] },
+            { name: "グラビモス亜種", kana: "ぐらびもすあしゅ", element: "火", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] },
+            { name: "クルルヤック", kana: "くるるやっく", element: "無", states: [{ c: "通常", t: "tech" }, { c: "岩構え", t: "power" }] },
+            { name: "クルペッコ", kana: "くるぺっこ", element: "火", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "power" }] },
+            { name: "クルペッコ亜種", kana: "くるぺっこあしゅ", element: "雷", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "speed" }] },
+            { name: "ゲリョス", kana: "げりょす", element: "毒", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] },
+            { name: "ゲリョス亜種", kana: "げりょすあしゅ", element: "毒", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] },
+            { name: "ゴア・マガラ", kana: "ごあまがら", element: "龍", states: [{ c: "通常", t: "power" }, { c: "狂竜化", t: "speed" }] },
+            { name: "ゴシャハギ", kana: "ごしゃはぎ", element: "氷", states: [{ c: "通常", t: "power" }, { c: "怒り【氷剣】", t: "speed" }, { c: "怒り【氷拳】", t: "tech" }] },
+            
+            // 凶異・強化・金雷公
+            { name: "強化竜ディノバルド", kana: "きょうかりゅうでぃのばるど", element: "火", states: [{ c: "通常", t: "speed" }, { c: "赤熱化・喉", t: "tech" }, { c: "赤熱化・尻尾", t: "power" }] },
+            { name: "金雷公ジンオウガ", kana: "きんらいこうじんおうが", element: "雷", states: [{ c: "通常", t: "power" }] },
+            { name: "凶異ドスランポス", kana: "きょういどすらんぽす", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "凶異オサイズチ", kana: "きょういおさいずち", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "凶異イャンクック", kana: "きょういいゃんくっく", element: "火", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "speed" }] },
+            { name: "凶異ゲリョス", kana: "きょういげりょす", element: "毒", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] },
+            { name: "凶異アケノシルム", kana: "きょういあけのしるむ", element: "火", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "power" }] },
+            { name: "凶異ビシュテンゴ", kana: "きょういびしゅてんご", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り(推測)", t: "tech" }] },
+            { name: "凶異ドドブランゴ", kana: "きょういどどぶらんご", element: "氷", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "speed" }] },
+            { name: "凶異アジャラカン", kana: "きょういあじゃらかん", element: "火", states: [{ c: "通常", t: "tech" }, { c: "赤熱化", t: "power" }] },
+            { name: "凶異チャタカブラ", kana: "きょういちゃたかぶら", element: "無", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] },
+            { name: "凶異ヨツミワドウ", kana: "きょういよつみわどう", element: "水", states: [{ c: "通常", t: "power" }, { c: "満腹", t: "tech" }] },
+            { name: "凶異ネルスキュラ", kana: "きょういねるすきゅら", element: "無", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "speed" }] },
+            { name: "凶異ヤツカダキ", kana: "きょういやつかだき", element: "火", states: [{ c: "通常", t: "tech" }, { c: "糸なし", t: "tech" }, { c: "糸纏い【繭】", t: "speed" }] },
+            { name: "凶異ボルボロス", kana: "きょういぼるぼろす", element: "水/泥", states: [{ c: "通常", t: "speed" }, { c: "泥纏い", t: "tech" }] },
+            { name: "凶異ディノバルド", kana: "きょういでぃのばるど", element: "火", states: [{ c: "通常", t: "speed" }, { c: "赤熱化・喉", t: "tech" }, { c: "赤熱化・尻尾", t: "power" }] },
+            { name: "凶異ブラキディオス", kana: "きょういぶらきでぃおす", element: "爆破", states: [{ c: "通常", t: "power" }, { c: "粘菌活性", t: "speed" }] },
+            { name: "凶異イソネミクニ", kana: "きょういいそねみくに", element: "睡眠", states: [{ c: "通常", t: "tech" }, { c: "尻尾立ち", t: "speed" }, { c: "尻尾立ち【粉溜】", t: "speed" }] },
+            { name: "凶異トビカガチ", kana: "きょういとびかがち", element: "雷", states: [{ c: "通常", t: "speed" }, { c: "帯電", t: "tech" }] },
+            { name: "凶異マガイマガド", kana: "きょういまがいまがど", element: "爆破", states: [{ c: "通常", t: "speed" }, { c: "鬼火纏い", t: "power" }, { c: "鬼火臨界", t: "tech" }] },
+            { name: "凶異パオウルムー", kana: "きょういぱおうるむー", element: "無", states: [{ c: "通常", t: "tech" }, { c: "滞空", t: "speed" }] },
+            { name: "凶異レイギエナ", kana: "きょういれいぎえな", element: "氷", states: [{ c: "通常", t: "speed" }, { c: "怒り【滞空】", t: "power" }, { c: "滞空", t: "tech" }] },
+            { name: "凶異グラビモス", kana: "きょういぐらびもす", element: "火", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] },
+            { name: "凶異エスピナス", kana: "きょういえすぴなす", element: "毒", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "speed" }] },
+            
+            // 黒炎王
+            { name: "黒炎王リオレウス", kana: "こくえんおうりおれうす", element: "火", states: [{ c: "通常", t: "power" }] },
+
+            // さ行
+            { name: "ショウグンギザミ", kana: "しょうぐんぎざみ", element: "無", states: [{ c: "ヤド【頭骨】", t: "speed" }, { c: "ヤドなし", t: "tech" }, { c: "ヤド【貝】", t: "power" }] },
+            { name: "ジンオウガ", kana: "じんおうが", element: "雷", states: [{ c: "通常", t: "speed" }, { c: "帯電", t: "tech" }, { c: "超帯電", t: "power" }] },
+            { name: "ジンオウガ亜種", kana: "じんおうがあしゅ", element: "龍", states: [{ c: "通常", t: "tech" }, { c: "龍光纏い", t: "speed" }, { c: "超龍光纏い", t: "power" }] },
+            { name: "ズワロポス", kana: "ずわろぽす", element: "無", states: [{ c: "通常", t: "power" }] },
+            { name: "セルレギオス", kana: "せるれぎおす", element: "裂傷", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "speed" }] },
+            { name: "隻眼イャンガルルガ", kana: "せきがんいゃんがるるが", element: "毒", states: [{ c: "通常", t: "speed" }] },
+            { name: "青雷主ライゼクス", kana: "せいらいしゅらいぜくす", element: "雷", states: [{ c: "通常", t: "tech" }] },
+            
+            // 侵獣など
+            { name: "侵獣イャンガルルガ", kana: "しんじゅういゃんがるるが", element: "毒", states: [{ c: "通常", t: "tech" }, { c: "侵化態", t: "power" }] },
+            { name: "侵獣アオアシラ", kana: "しんじゅうあおあしら", element: "無", states: [{ c: "通常", t: "power" }] },
+            { name: "侵獣ショウグンギザミ", kana: "しんじゅうしょうぐんぎざみ", element: "無", states: [{ c: "通常", t: "power" }] },
+            { name: "侵獣ネルスキュラ", kana: "しんじゅうねるすきゅら", element: "無", states: [{ c: "通常", t: "tech" }] },
+            { name: "侵獣ガノトトス", kana: "しんじゅうがのととす", element: "水", states: [{ c: "通常", t: "tech" }] },
+            { name: "侵獣セルレギオス", kana: "しんじゅうせるれぎおす", element: "無", states: [{ c: "通常", t: "tech" }, { c: "侵化態", t: "power" }] },
+            { name: "燼滅刃ディノバルド", kana: "じんめつじんでぃのばるど", element: "爆破", states: [{ c: "通常", t: "speed" }] },
+            
+            // た行
+            { name: "大雷光虫", kana: "だいらいこうちゅう", element: "雷", states: [{ c: "通常", t: "tech" }] },
+            { name: "大蝕龍蟲", kana: "だいしょくりゅうちゅう", element: "龍", states: [{ c: "通常", t: "speed" }] },
+            { name: "タルアイルー", kana: "たるあいるー", element: "無", states: [{ c: "通常", t: "speed" }] },
+            { name: "大タルアイルー", kana: "おおたるあいるー", element: "無", states: [{ c: "通常", t: "speed" }] },
+            { name: "タマミツネ", kana: "たまみつね", element: "水", states: [{ c: "通常", t: "tech" }, { c: "泡纏い", t: "speed" }, { c: "泡纏い【潤滑】", t: "speed" }] },
+            { name: "チャタカブラ", kana: "ちゃたかぶら", element: "無", states: [{ c: "通常", t: "power" }, { c: "鉱物纏い", t: "tech" }] },
+            { name: "ツケヒバキ", kana: "つけひばき", element: "火", states: [{ c: "通常", t: "tech" }] },
+            { name: "ティガレックス", kana: "てぃがれっくす", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "ティガレックス亜種", kana: "てぃがれっくすあしゅ", element: "無", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "speed" }] },
+            { name: "ディノバルド", kana: "でぃのばるど", element: "火", states: [{ c: "通常", t: "speed" }, { c: "赤熱化【喉】", t: "tech" }, { c: "赤熱化【尻尾】", t: "power" }] },
+            { name: "ディアブロス", kana: "でぃあぶろす", element: "無", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "speed" }, { c: "潜行", t: "speed" }] },
+            { name: "ディアブロス亜種", kana: "でぃあぶろすあしゅ", element: "無", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "speed" }, { c: "潜行", t: "speed" }] },
+            { name: "ドドブランゴ", kana: "どどぶらんご", element: "氷", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "speed" }] },
+            { name: "ドスランポス", kana: "どすらんぽす", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "トビカガチ", kana: "とびかがち", element: "雷", states: [{ c: "通常", t: "speed" }, { c: "帯電", t: "tech" }] },
+            { name: "天眼タマミツネ", kana: "てんがんたまみつね", element: "水", states: [{ c: "通常", t: "speed" }] },
+            
+            // 珍種・超竜化
+            { name: "珍種ドスランポス", kana: "ちんしゅどすらんぽす", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "珍種ハプルボッカ", kana: "ちんしゅはぷるぼっか", element: "無", states: [{ c: "通常", t: "tech" }, { c: "擬態", t: "tech" }] },
+            { name: "珍種レイギエナ", kana: "ちんしゅれいぎえな", element: "氷", states: [{ c: "通常", t: "speed" }, { c: "滞空", t: "tech" }] },
+            { name: "珍種セルレギオス", kana: "ちんしゅせるれぎおす", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "tech" }] },
+            { name: "超竜化ルナガロン", kana: "ちょうりゅうかるながろん", element: "氷", states: [{ c: "通常", t: "speed" }] },
+            { name: "超竜化リオレウス亜種", kana: "ちょうりゅうかりおれうすあしゅ", element: "火", states: [{ c: "通常", t: "power" }, { c: "怒り【滞空】", t: "speed" }, { c: "超竜化【解放】", t: "tech" }] },
+
+            // な行
+            { name: "ナルガクルガ", kana: "なるがくるが", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "tech" }] },
+            { name: "ナルガクルガ亜種", kana: "なるがくるがあしゅ", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "ナルハタタヒメ", kana: "なるはたたひめ", element: "雷", states: [{ c: "雷纏い", t: "tech" }, { c: "異体同心", t: "speed" }, { c: "封龍", t: "tech" }] },
+            { name: "ネロミェール", kana: "ねろみぇーる", element: "水/雷", states: [{ c: "水纏い", t: "tech" }, { c: "溟帯電", t: "speed" }, { c: "水枯渇", t: "power" }] },
+            { name: "ネルスキュラ", kana: "ねるすきゅら", element: "無", states: [{ c: "通常", t: "tech" }] },
+            { name: "ネルスキュラ亜種", kana: "ねるすきゅらあしゅ", element: "無", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "speed" }] },
+
+            // は行
+            { name: "ハプルボッカ", kana: "はぷるぼっか", element: "無", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "speed" }, { c: "擬態", t: "speed" }] },
+            { name: "パオウルムー", kana: "ぱおうるむー", element: "無", states: [{ c: "通常", t: "tech" }, { c: "滞空", t: "speed" }] },
+            { name: "ビシュテンゴ", kana: "びしゅてんご", element: "無", states: [{ c: "通常", t: "tech" }, { c: "尻尾立ち", t: "speed" }] },
+            { name: "ビシュテンゴ亜種", kana: "びしゅてんごあしゅ", element: "無", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "プケプケ", kana: "ぷけぷけ", element: "毒", states: [{ c: "通常", t: "tech" }, { c: "毒活性【もぐもぐ】", t: "speed" }, { c: "毒活性【ぱくぱく】", t: "power" }] },
+            { name: "ブナハブラ", kana: "ぶなはぶら", element: "無", states: [{ c: "通常", t: "tech" }] },
+            { name: "ブランゴ", kana: "ぶらんご", element: "氷", states: [{ c: "通常", t: "power" }] },
+            { name: "ブラキディオス", kana: "ぶらきでぃおす", element: "爆破", states: [{ c: "通常", t: "power" }, { c: "粘菌活性", t: "speed" }, { c: "粘菌枯渇", t: "power" }] },
+            { name: "フルフル", kana: "ふるふる", element: "雷", states: [{ c: "通常", t: "tech" }, { c: "帯電", t: "power" }] },
+            { name: "フルフル亜種", kana: "ふるふるあしゅ", element: "雷", states: [{ c: "通常", t: "tech" }, { c: "帯電", t: "power" }] },
+            { name: "ベリオロス", kana: "べりおろす", element: "氷", states: [{ c: "通常", t: "tech" }, { c: "怒り", t: "speed" }] },
+            { name: "ベリオロス亜種", kana: "べりおろすあしゅ", element: "氷", states: [{ c: "通常", t: "tech" }] },
+            { name: "ボルボロス", kana: "ぼるぼろす", element: "水", states: [{ c: "通常", t: "speed" }, { c: "泥纏い", t: "tech" }] },
+            { name: "ボルボロス亜種", kana: "ぼるぼろすあしゅ", element: "氷", states: [{ c: "通常", t: "power" }, { c: "雪纏い", t: "tech" }] },
+            { name: "白疾風ナルガクルガ", kana: "しろはやてなるがくるが", element: "無", states: [{ c: "通常", t: "speed" }] },
+
+            // ま行
+            { name: "マガイマガド", kana: "まがいまがど", element: "爆破", states: [{ c: "通常", t: "speed" }, { c: "鬼火纏い", t: "power" }, { c: "鬼火臨界", t: "tech" }] },
+            { name: "メル・ゼナ", kana: "めるぜな", element: "龍", states: [{ c: "通常", t: "speed" }, { c: "血氣活性", t: "tech" }] },
+
+            // や行
+            { name: "ヤツカダキ", kana: "やつかだき", element: "火", states: [{ c: "通常", t: "tech" }, { c: "糸なし", t: "tech" }, { c: "糸纏い【繭】", t: "speed" }] },
+            { name: "ヤマツカミ", kana: "やまつかみ", element: "無", states: [{ c: "通常", t: "power" }, { c: "閉口", t: "speed" }] },
+            { name: "ヤマツカミ（天変古龍）", kana: "やまつかみてんぺんこりゅう", element: "無", states: [{ c: "通常", t: "power" }, { c: "開口", t: "speed" }] },
+            { name: "ヨツミワドウ", kana: "よつみわどう", element: "水", states: [{ c: "通常", t: "power" }, { c: "満腹", t: "tech" }] },
+            { name: "厄石結晶1", kana: "やくせきけっしょう1", element: "無", states: [{ c: "通常", t: "power" }] },
+            { name: "厄石結晶2", kana: "やくせきけっしょう2", element: "無", states: [{ c: "通常", t: "speed" }] },
+
+            // ら行
+            { name: "ラギアクルス", kana: "らぎあくるす", element: "雷", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "speed" }, { c: "蓄電", t: "tech" }] },
+            { name: "ラギアクルス亜種", kana: "らぎあくるすあしゅ", element: "雷", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }, { c: "蓄電", t: "tech" }] },
+            { name: "ランポス", kana: "らんぽす", element: "無", states: [{ c: "通常", t: "speed" }] },
+            { name: "ライゼクス", kana: "らいぜくす", element: "雷", states: [{ c: "通常", t: "speed" }, { c: "電荷", t: "power" }] },
+            { name: "リオレイア", kana: "りおれいあ", element: "火/毒", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "リオレイア亜種", kana: "りおれいああしゅ", element: "火/毒", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "リオレウス", kana: "りおれうす", element: "火", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }, { c: "怒り【滞空】", t: "speed" }] },
+            { name: "リオレウス亜種", kana: "りおれうすあしゅ", element: "火", states: [{ c: "通常", t: "power" }] },
+            { name: "ルドロス", kana: "るどろす", element: "水", states: [{ c: "通常", t: "power" }] },
+            { name: "ルナガロン", kana: "るながろん", element: "氷", states: [{ c: "通常", t: "speed" }, { c: "怒り", t: "power" }] },
+            { name: "レ・ダウ", kana: "れだう", element: "雷", states: [{ c: "通常", t: "speed" }, { c: "フルグライト纏い", t: "power" }] },
+            { name: "レイギエナ", kana: "れいぎえな", element: "氷", states: [{ c: "通常", t: "speed" }, { c: "怒り【滞空】", t: "power" }, { c: "滞空", t: "tech" }] },
+            { name: "レウス", kana: "れうす", element: "火", states: [{ c: "通常", t: "power" }] },
+            { name: "ロアルドロス", kana: "ろあるどろす", element: "水", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] },
+            { name: "ロアルドロス亜種", kana: "ろあるどろすあしゅ", element: "毒", states: [{ c: "通常", t: "power" }, { c: "怒り", t: "tech" }] }
+        ];
+
+        // 英語のtype文字列への変換用マップ
+        const typeMap = {
+            power: { label: "パワー", icon: "fa-hand-fist", color: "color-power" },
+            speed: { label: "スピード", icon: "fa-forward-fast", color: "color-speed" },
+            tech: { label: "テクニック", icon: "fa-chess-knight", color: "color-tech" }
+        };
+        
+        // 鏖魔ディアブロス等、データが日本語で入った時の安全策用マッピング
+        const jpToEngMap = {
+            "パワー": "power",
+            "スピード": "speed",
+            "テクニック": "tech"
+        };
+
+        const lineMap = {
+            "あ": /^[あ-おゔア-オヴ]/, "か": /^[か-こが-ごカ-コガ-ゴ]/, "さ": /^[さ-そざ-ぞサ-ソザ-ゾ]/,
+            "た": /^[た-とだ-どタ-トダ-ド]/, "な": /^[な-のナ-ノ]/, "は": /^[は-ほば-ぼぱ-ぽハ-ホバ-ボパ-ポ]/,
+            "ま": /^[ま-もマ-モ]/, "や": /^[や-よヤ-ヨ]/, "ら": /^[ら-ろラ-ロ]/, "わ": /^[わをんワヲン]/
+        };
+
+        let currentLine = 'all';
+        let searchQuery = '';
+
+        const grid = document.getElementById('monsterGrid');
+        const noResults = document.getElementById('noResults');
+        const resultCount = document.getElementById('resultCount');
+
+        function render() {
+            grid.innerHTML = '';
+            
+            const filtered = monsterData.filter(m => {
+                const matchesSearch = m.name.includes(searchQuery) || m.kana.includes(searchQuery);
+                const matchesLine = currentLine === 'all' || lineMap[currentLine].test(m.kana);
+                return matchesSearch && matchesLine;
+            }).sort((a, b) => a.kana.localeCompare(b.kana, 'ja'));
+
+            resultCount.textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                noResults.classList.remove('hidden');
+                return;
+            }
+            noResults.classList.add('hidden');
+
+            filtered.forEach(m => {
+                const card = document.createElement('div');
+                card.className = "monster-card";
+                
+                let statesHtml = m.states.map(s => {
+                    // 表記ゆれ対応
+                    const engType = jpToEngMap[s.t] || s.t;
+                    const sc = typeMap[engType];
+                    
+                    return `
+                        <div class="flex justify-between items-center py-2.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 px-2 -mx-2 rounded transition-colors">
+                            <span class="text-gray-700 text-sm font-bold">${s.c}</span>
+                            <div class="type-badge ${sc.color} shadow-sm">
+                                <i class="fa-solid ${sc.icon}"></i>
+                                <span>${sc.label}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                card.innerHTML = `
+                    <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex justify-between items-start">
+                        <div>
+                            <h3 class="font-black text-gray-900 text-lg leading-tight">${m.name}</h3>
+                            <p class="text-[10px] text-gray-400 font-bold tracking-widest mt-1">${m.kana.toUpperCase()}</p>
+                        </div>
+                        <span class="text-[10px] text-blue-700 font-black px-2 py-1 bg-blue-50 border border-blue-200 rounded-md shadow-sm whitespace-nowrap">${m.element}</span>
+                    </div>
+                    <div class="p-5 space-y-1">
+                        ${statesHtml}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            render();
+        });
+
+        document.querySelectorAll('.btn-line').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.btn-line').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentLine = btn.dataset.line;
+                render();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        render();
+    </script>
+</body>
+</html>
+
+
