@@ -1,0 +1,262 @@
+```react
+import React, { useState, useEffect, useMemo } from 'react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  onSnapshot, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc,
+  query,
+  orderBy
+} from 'firebase/firestore';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  signInWithCustomToken, 
+  onAuthStateChanged 
+} from 'firebase/auth';
+import { 
+  Plus, 
+  Trash2, 
+  CheckCircle2, 
+  Clock, 
+  AlertCircle,
+  User,
+  Calendar,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+
+// --- Firebase Configuration ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'homework-planner-default';
+
+const DAYS = ['日', '月', '火', '水', '木', '金', '土'];
+const STATUS_COLORS = {
+  todo: 'bg-red-100 text-red-700 border-red-200',
+  doing: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+  done: 'bg-green-100 text-green-700 border-green-200'
+};
+
+const STATUS_ICONS = {
+  todo: <AlertCircle size={16} />,
+  doing: <Clock size={16} />,
+  done: <CheckCircle2 size={16} />
+};
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [homeworks, setHomeworks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [newTask, setNewTask] = useState('');
+  const [selectedDay, setSelectedDay] = useState(new Date().getDay());
+
+  // 1. Authentication
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (error) {
+        console.error("Auth error:", error);
+      }
+    };
+    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, setUser);
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Real-time Data Sync
+  useEffect(() => {
+    if (!user) return;
+
+    const homeworksRef = collection(db, 'artifacts', appId, 'public', 'data', 'homeworks');
+    // Simple query (No complex filters as per Rule 2)
+    const q = query(homeworksRef);
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      // Sort in memory (Rule 2)
+      setHomeworks(data.sort((a, b) => b.createdAt - a.createdAt));
+      setLoading(false);
+    }, (error) => {
+      console.error("Firestore error:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const addHomework = async (e) => {
+    e.preventDefault();
+    if (!newTask.trim() || !user) return;
+
+    try {
+      const homeworksRef = collection(db, 'artifacts', appId, 'public', 'data', 'homeworks');
+      await addDoc(homeworksRef, {
+        title: newTask,
+        day: selectedDay,
+        status: 'todo',
+        createdBy: user.uid,
+        createdAt: Date.now()
+      });
+      setNewTask('');
+    } catch (err) {
+      console.error("Add error:", err);
+    }
+  };
+
+  const updateStatus = async (id, currentStatus) => {
+    const statusCycle = ['todo', 'doing', 'done'];
+    const nextStatus = statusCycle[(statusCycle.indexOf(currentStatus) + 1) % statusCycle.length];
+    
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'homeworks', id);
+      await updateDoc(docRef, { status: nextStatus });
+    } catch (err) {
+      console.error("Update error:", err);
+    }
+  };
+
+  const deleteHomework = async (id) => {
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'homeworks', id);
+      await deleteDoc(docRef);
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+  };
+
+  const filteredHomeworks = useMemo(() => {
+    return homeworks.filter(h => h.day === selectedDay);
+  }, [homeworks, selectedDay]);
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="text-slate-500 animate-pulse">認証中...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans p-4 md:p-8">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <header className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Calendar className="text-blue-600" />
+              宿題マネージャー
+            </h1>
+            <div className="flex items-center gap-2 text-xs bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-200">
+              <User size={14} className="text-slate-400" />
+              <span className="text-slate-600 truncate max-w-[100px]">ID: {user.uid}</span>
+            </div>
+          </div>
+          <p className="text-slate-500 text-sm">
+            リアルタイムで他のユーザーと進捗を共有中。
+          </p>
+        </header>
+
+        {/* Day Selector */}
+        <div className="grid grid-cols-7 gap-2 mb-6">
+          {DAYS.map((day, idx) => (
+            <button
+              key={day}
+              onClick={() => setSelectedDay(idx)}
+              className={`py-3 rounded-xl text-sm font-medium transition-all ${
+                selectedDay === idx
+                  ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              {day}
+            </button>
+          ))}
+        </div>
+
+        {/* Form */}
+        <form onSubmit={addHomework} className="flex gap-2 mb-8">
+          <input
+            type="text"
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder={`${DAYS[selectedDay]}曜日の宿題を追加...`}
+            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm transition-all"
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl shadow-lg transition-colors flex items-center justify-center"
+          >
+            <Plus size={24} />
+          </button>
+        </form>
+
+        {/* Content */}
+        <div className="space-y-3">
+          {loading ? (
+            <div className="text-center py-10 text-slate-400">読み込み中...</div>
+          ) : filteredHomeworks.length > 0 ? (
+            filteredHomeworks.map((item) => (
+              <div 
+                key={item.id}
+                className="group flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all animate-in fade-in slide-in-from-bottom-2"
+              >
+                <div className="flex items-center gap-4 flex-1">
+                  <button
+                    onClick={() => updateStatus(item.id, item.status)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${STATUS_COLORS[item.status]}`}
+                  >
+                    {STATUS_ICONS[item.status]}
+                  </button>
+                  <span className={`text-lg ${item.status === 'done' ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                    {item.title}
+                  </span>
+                </div>
+                
+                <button
+                  onClick={() => deleteHomework(item.id)}
+                  className="text-slate-300 hover:text-red-500 p-2 transition-colors lg:opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-16 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+              <p className="text-slate-400">{DAYS[selectedDay]}曜日の宿題はまだありません</p>
+            </div>
+          )}
+        </div>
+
+        {/* Legend */}
+        <footer className="mt-12 flex justify-center gap-6 text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+          <div className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-red-400"></span> 未完了
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-yellow-400"></span> 進行中
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-green-400"></span> 完了
+          </div>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+```
