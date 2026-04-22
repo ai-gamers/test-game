@@ -1,181 +1,264 @@
-import React, { useState, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  collection, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc, 
-  serverTimestamp 
-} from 'firebase/firestore';
-import { 
-  getAuth, 
-  signInAnonymously, 
-  signInWithCustomToken, 
-  onAuthStateChanged 
-} from 'firebase/auth';
-import { 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
-  Circle, 
-  Calendar,
-  LayoutGrid,
-  ClipboardList,
-  Loader2
-} from 'lucide-react';
-
-// --- Firebase Configuration ---
-const firebaseConfig = {
-  apiKey: "AIzaSyD-doc3VpTgreIIpSJhLU3BM-nFjTBk42M",
-  authDomain: "poke-battle-8f6b9.firebaseapp.com",
-  projectId: "poke-battle-8f6b9",
-  storageBucket: "poke-battle-8f6b9.firebasestorage.app",
-  messagingSenderId: "1041885914810",
-  appId: "1:1041885914810:web:426d0c25c499b152f88483",
-  measurementId: "G-RGE3SEGTYL"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'homework-manager-final';
-
-const DAYS_OF_WEEK = [
-  { id: 'mon', label: '月', fullName: '月曜日', color: 'text-blue-600', bg: 'bg-blue-50' },
-  { id: 'tue', label: '火', fullName: '火曜日', color: 'text-red-600', bg: 'bg-red-50' },
-  { id: 'wed', label: '水', fullName: '水曜日', color: 'text-green-600', bg: 'bg-green-50' },
-  { id: 'thu', label: '木', fullName: '木曜日', color: 'text-yellow-600', bg: 'bg-yellow-50' },
-  { id: 'fri', label: '金', fullName: '金曜日', color: 'text-purple-600', bg: 'bg-purple-50' },
-  { id: 'sat', label: '土', fullName: '土曜日', color: 'text-indigo-600', bg: 'bg-indigo-50' },
-  { id: 'sun', label: '日', fullName: '日曜日', color: 'text-pink-600', bg: 'bg-pink-50' },
-];
-
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [homeworks, setHomeworks] = useState([]);
-  const [newTask, setNewTask] = useState('');
-  const [activeTab, setActiveTab] = useState('mon');
-  const [viewMode, setViewMode] = useState('tabs');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>週間宿題リスト</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .homework-item {
+            transition: all 0.2s ease;
         }
-      } catch (error) { console.error(error); }
-    };
-    initAuth();
-    return onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setIsLoading(false);
-    });
-  }, []);
+        .completed-text {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        .day-label {
+            min-width: 100px;
+        }
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
 
-  useEffect(() => {
-    if (!user) return;
-    const q = collection(db, 'artifacts', appId, 'public', 'data', 'homeworks');
-    return onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setHomeworks(items.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
-    });
-  }, [user]);
-
-  const handleAdd = async (e) => {
-    if (e) e.preventDefault();
-    if (!newTask.trim() || !user || isAdding) return;
-    setIsAdding(true);
-    try {
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'homeworks'), {
-        text: newTask.trim(),
-        day: activeTab,
-        completed: false,
-        createdAt: serverTimestamp()
-      });
-      setNewTask('');
-    } catch (err) { console.error(err); }
-    setIsAdding(false);
-  };
-
-  const toggleStatus = async (id, status) => {
-    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'homeworks', id), { completed: !status });
-  };
-
-  const handleDelete = async (id) => {
-    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'homeworks', id));
-  };
-
-  if (isLoading) return <div className="flex h-screen items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-indigo-600" /></div>;
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 font-sans">
-      <nav className="bg-white border-b sticky top-0 z-20 shadow-sm px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2 max-w-3xl mx-auto w-full justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="text-indigo-600" size={24} />
-            <span className="font-bold text-lg">宿題管理</span>
-          </div>
-          <div className="flex bg-slate-100 p-1 rounded-xl">
-            <button onClick={() => setViewMode('tabs')} className={`px-4 py-1.5 rounded-lg text-sm font-semibold ${viewMode === 'tabs' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>編集</button>
-            <button onClick={() => setViewMode('summary')} className={`px-4 py-1.5 rounded-lg text-sm font-semibold ${viewMode === 'summary' ? 'bg-white shadow text-indigo-600' : 'text-slate-500'}`}>一覧</button>
-          </div>
+    <!-- Header -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <span class="text-indigo-600">📝</span> 1週間の宿題
+            </h1>
+            <div id="connection-badge" class="flex items-center gap-2 text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-gray-400" id="status-dot"></span>
+                <span id="status-text">接続中...</span>
+            </div>
         </div>
-      </nav>
+    </nav>
 
-      <main className="max-w-3xl mx-auto p-4">
-        {viewMode === 'tabs' ? (
-          <div>
-            <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-              {DAYS_OF_WEEK.map((day) => (
-                <button key={day.id} onClick={() => setActiveTab(day.id)} className={`flex-1 min-w-[64px] py-3 rounded-2xl flex flex-col items-center border-2 transition-all ${activeTab === day.id ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg' : 'bg-white border-transparent text-slate-500 hover:bg-slate-100'}`}>
-                  <span className="text-[10px] font-bold mb-0.5">{day.label}</span>
-                  <span className="text-lg font-black">{homeworks.filter(h => h.day === day.id).length}</span>
+    <main class="max-w-4xl mx-auto px-4 py-8">
+        
+        <!-- Input Form -->
+        <section class="bg-white rounded-xl shadow-sm p-4 mb-8">
+            <form id="homework-form" class="flex flex-col sm:flex-row gap-3">
+                <div class="flex-grow">
+                    <input type="text" id="task-input" placeholder="宿題の内容（例：漢字ドリル P.10）" 
+                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" required>
+                </div>
+                <div class="sm:w-40">
+                    <select id="day-select" class="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+                        <option value="mon">月曜日</option>
+                        <option value="tue">火曜日</option>
+                        <option value="wed">水曜日</option>
+                        <option value="thu">木曜日</option>
+                        <option value="fri">金曜日</option>
+                        <option value="sat">土曜日</option>
+                        <option value="sun">日曜日</option>
+                    </select>
+                </div>
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-sm">
+                    追加
                 </button>
-              ))}
-            </div>
-
-            <form onSubmit={handleAdd} className="mt-4 bg-white p-2 rounded-3xl shadow-xl border border-slate-200 flex gap-2">
-              <input type="text" value={newTask} onChange={(e) => setNewTask(e.target.value)} placeholder={`${DAYS_OF_WEEK.find(d => d.id === activeTab).fullName}に宿題を追加...`} className="flex-1 px-5 py-3 rounded-2xl bg-slate-50 border-none outline-none" />
-              <button disabled={!newTask.trim() || isAdding} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-indigo-600 text-white disabled:bg-slate-200">
-                {isAdding ? <Loader2 className="animate-spin" /> : <Plus />}
-              </button>
             </form>
+        </section>
 
-            <div className="mt-8 space-y-3">
-              {homeworks.filter(h => h.day === activeTab).map((task) => (
-                <div key={task.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center gap-4 shadow-sm">
-                  <button onClick={() => toggleStatus(task.id, task.completed)}>{task.completed ? <CheckCircle2 className="text-green-500" /> : <Circle className="text-slate-300" />}</button>
-                  <span className={`flex-1 font-medium ${task.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{task.text}</span>
-                  <button onClick={() => handleDelete(task.id)} className="text-slate-300 hover:text-red-500"><Trash2 size={18} /></button>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="grid gap-6">
-            {DAYS_OF_WEEK.map((day) => (
-              <div key={day.id} className="bg-white rounded-3xl overflow-hidden border border-slate-200">
-                <div className={`px-5 py-2 border-b font-bold ${day.bg} ${day.color}`}>{day.fullName}</div>
-                <div className="p-2">
-                  {homeworks.filter(h => h.day === day.id).map(task => (
-                    <div key={task.id} className="p-3 flex items-center gap-3 border-b border-slate-50 last:border-0">
-                      <div className={`w-2 h-2 rounded-full ${task.completed ? 'bg-green-400' : 'bg-slate-200'}`} />
-                      <span className={`text-sm ${task.completed ? 'text-slate-400 line-through' : 'text-slate-600'}`}>{task.text}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
+        <!-- List View -->
+        <div class="space-y-4" id="week-container">
+            <!-- 各曜日の行が生成される -->
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 z-50 text-sm">
+        メッセージ
     </div>
-  );
-}
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-doc3VpTgreIIpSJhLU3BM-nFjTBk42M",
+            authDomain: "poke-battle-8f6b9.firebaseapp.com",
+            projectId: "poke-battle-8f6b9",
+            storageBucket: "poke-battle-8f6b9.firebasestorage.app",
+            messagingSenderId: "1041885914810",
+            appId: "1:1041885914810:web:426d0c25c499b152f88483",
+            measurementId: "G-RGE3SEGTYL"
+        };
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'weekly-list-v2';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        const dayMap = {
+            mon: { name: '月曜日', color: 'indigo' },
+            tue: { name: '火曜日', color: 'emerald' },
+            wed: { name: '水曜日', color: 'amber' },
+            thu: { name: '木曜日', color: 'orange' },
+            fri: { name: '金曜日', color: 'rose' },
+            sat: { name: '土曜日', color: 'blue' },
+            sun: { name: '日曜日', color: 'red' }
+        };
+        const dayKeys = Object.keys(dayMap);
+
+        // UI References
+        const form = document.getElementById('homework-form');
+        const taskInput = document.getElementById('task-input');
+        const daySelect = document.getElementById('day-select');
+        const weekContainer = document.getElementById('week-container');
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
+        const toast = document.getElementById('toast');
+
+        // Auth initialization
+        async function init() {
+            try {
+                await signInAnonymously(auth);
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUser = user;
+                        statusText.innerText = "同期中";
+                        statusDot.classList.replace('bg-gray-400', 'bg-green-500');
+                        startListening();
+                    }
+                });
+            } catch (err) {
+                console.error(err);
+                showToast("認証エラーが発生しました");
+            }
+        }
+
+        // Realtime Data Sync
+        function startListening() {
+            const homeworkCol = collection(db, 'artifacts', appId, 'public', 'data', 'weekly_tasks');
+            onSnapshot(homeworkCol, (snapshot) => {
+                const tasks = [];
+                snapshot.forEach(doc => tasks.push({ id: doc.id, ...doc.data() }));
+                renderList(tasks);
+            }, (error) => {
+                console.error(error);
+                showToast("通信エラーが発生しました");
+            });
+        }
+
+        // Render functions
+        function renderList(tasks) {
+            weekContainer.innerHTML = '';
+
+            dayKeys.forEach(dayKey => {
+                const dayData = dayMap[dayKey];
+                const dayTasks = tasks.filter(t => t.day === dayKey);
+                
+                const row = document.createElement('div');
+                row.className = "flex flex-col md:flex-row bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100";
+                
+                // Left side: Day Label
+                const sideBar = document.createElement('div');
+                sideBar.className = `md:w-32 bg-${dayData.color}-50 p-4 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-100`;
+                sideBar.innerHTML = `<span class="font-bold text-${dayData.color}-700">${dayData.name}</span>`;
+                
+                // Right side: Task List
+                const listContent = document.createElement('div');
+                listContent.className = "flex-grow p-4 space-y-3";
+                
+                if (dayTasks.length === 0) {
+                    listContent.innerHTML = `<p class="text-gray-400 text-sm italic">宿題はありません</p>`;
+                } else {
+                    dayTasks.forEach(task => {
+                        const taskEl = document.createElement('div');
+                        taskEl.className = "flex items-center justify-between gap-4 group";
+                        
+                        taskEl.innerHTML = `
+                            <div class="flex items-center gap-3 flex-grow min-w-0">
+                                <button class="toggle-btn w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-indigo-500'}" id="check-${task.id}">
+                                    ${task.completed ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                                </button>
+                                <span class="text-sm break-all ${task.completed ? 'completed-text' : 'text-gray-700'}">${escapeHtml(task.title)}</span>
+                            </div>
+                            <button class="delete-btn opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 transition-opacity" title="削除">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m4-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        `;
+
+                        taskEl.querySelector('.toggle-btn').onclick = () => toggleTask(task.id, task.completed);
+                        taskEl.querySelector('.delete-btn').onclick = () => deleteTask(task.id);
+                        
+                        listContent.appendChild(taskEl);
+                    });
+                }
+
+                row.appendChild(sideBar);
+                row.appendChild(listContent);
+                weekContainer.appendChild(row);
+            });
+        }
+
+        // Actions
+        async function addTask(e) {
+            e.preventDefault();
+            const title = taskInput.value.trim();
+            const day = daySelect.value;
+            
+            if (!title || !currentUser) return;
+
+            try {
+                const homeworkCol = collection(db, 'artifacts', appId, 'public', 'data', 'weekly_tasks');
+                await addDoc(homeworkCol, {
+                    title,
+                    day,
+                    completed: false,
+                    createdAt: serverTimestamp()
+                });
+                taskInput.value = '';
+                showToast("追加しました！");
+            } catch (err) {
+                showToast("追加に失敗しました");
+            }
+        }
+
+        async function toggleTask(id, currentStatus) {
+            if (!currentUser) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weekly_tasks', id);
+            await updateDoc(docRef, { completed: !currentStatus });
+        }
+
+        async function deleteTask(id) {
+            if (!currentUser) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weekly_tasks', id);
+            await deleteDoc(docRef);
+            showToast("削除しました");
+        }
+
+        // Helpers
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        form.addEventListener('submit', addTask);
+        window.onload = init;
+
+    </script>
+</body>
+</html>
