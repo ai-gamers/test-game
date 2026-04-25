@@ -3,262 +3,312 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>週間宿題リスト</title>
+    <title>宿題共有ボード</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .homework-item {
-            transition: all 0.2s ease;
-        }
-        .completed-text {
-            text-decoration: line-through;
-            color: #9ca3af;
-        }
-        .day-label {
-            min-width: 100px;
-        }
-        /* カスタムスクロールバー */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin 3s linear infinite; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .day-btn.active { @apply bg-indigo-600 text-white shadow-md; }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-[#f8fafc] text-slate-900 font-sans min-h-screen pb-20">
 
-    <!-- Header -->
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <span class="text-indigo-600">📝</span> 1週間の宿題
-            </h1>
-            <div id="connection-badge" class="flex items-center gap-2 text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                <span class="w-2 h-2 rounded-full bg-gray-400" id="status-dot"></span>
-                <span id="status-text">接続中...</span>
-            </div>
+    <!-- 読み込み中オーバーレイ -->
+    <div id="loading-overlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-50">
+        <div class="flex flex-col items-center gap-3">
+            <i data-lucide="loader-2" class="text-indigo-500 animate-spin w-8 h-8"></i>
+            <p class="text-slate-500 font-medium text-sm">接続中...</p>
         </div>
-    </nav>
-
-    <main class="max-w-4xl mx-auto px-4 py-8">
-        
-        <!-- Input Form -->
-        <section class="bg-white rounded-xl shadow-sm p-4 mb-8">
-            <form id="homework-form" class="flex flex-col sm:flex-row gap-3">
-                <div class="flex-grow">
-                    <input type="text" id="task-input" placeholder="宿題の内容（例：漢字ドリル P.10）" 
-                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" required>
-                </div>
-                <div class="sm:w-40">
-                    <select id="day-select" class="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
-                        <option value="mon">月曜日</option>
-                        <option value="tue">火曜日</option>
-                        <option value="wed">水曜日</option>
-                        <option value="thu">木曜日</option>
-                        <option value="fri">金曜日</option>
-                        <option value="sat">土曜日</option>
-                        <option value="sun">日曜日</option>
-                    </select>
-                </div>
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-sm">
-                    追加
-                </button>
-            </form>
-        </section>
-
-        <!-- List View -->
-        <div class="space-y-4" id="week-container">
-            <!-- 各曜日の行が生成される -->
-        </div>
-    </main>
-
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 z-50 text-sm">
-        メッセージ
     </div>
 
+    <div class="lg:flex lg:justify-center lg:items-start lg:pt-8 max-w-6xl mx-auto">
+        <!-- メインコンテンツ -->
+        <main class="w-full max-w-xl px-4 py-8 lg:py-0">
+            <!-- ヘッダー -->
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-3">
+                    <div class="bg-indigo-600 p-2.5 rounded-xl shadow-indigo-200 shadow-lg text-white">
+                        <i data-lucide="calendar-days"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-black tracking-tight leading-tight text-slate-800">宿題共有ボード</h1>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Real-time Management</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-[10px] font-bold text-slate-500 shadow-sm">
+                    <i data-lucide="users" class="text-indigo-500 w-3 h-3"></i>
+                    全員で共有
+                </div>
+            </div>
+
+            <!-- 曜日ナビゲーション -->
+            <div id="day-nav" class="flex justify-between gap-1 mb-6 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+                <!-- JSで生成 -->
+            </div>
+
+            <!-- 入力フォーム -->
+            <form id="add-task-form" class="relative mb-8">
+                <input
+                    type="text"
+                    id="task-input"
+                    placeholder="宿題を追加..."
+                    class="w-full pl-5 pr-14 py-4 bg-white border-2 border-transparent rounded-2xl shadow-sm focus:border-indigo-500 focus:outline-none transition-all placeholder:text-slate-300"
+                    required
+                >
+                <button
+                    type="submit"
+                    id="submit-btn"
+                    class="absolute right-2 top-2 bottom-2 px-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-sm flex items-center justify-center disabled:bg-slate-200"
+                >
+                    <i data-lucide="plus" id="btn-icon-plus"></i>
+                    <i data-lucide="loader-2" id="btn-icon-loader" class="hidden animate-spin"></i>
+                </button>
+            </form>
+
+            <!-- 宿題リスト -->
+            <div id="task-list" class="space-y-3">
+                <!-- JSで生成 -->
+            </div>
+        </main>
+
+        <!-- サマリーサイドバー -->
+        <aside class="w-full max-w-xl lg:max-w-xs px-4 pb-12 lg:pb-0">
+            <div class="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden sticky top-8">
+                <div class="bg-slate-50 px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+                    <h2 class="text-sm font-black text-slate-700 flex items-center gap-2 italic">
+                        <i data-lucide="layout-list" class="text-indigo-600 w-4 h-4"></i>
+                        WEEKLY SUMMARY
+                    </h2>
+                    <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-bold">ReadOnly</span>
+                </div>
+                
+                <div id="summary-content" class="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+                    <!-- JSで生成 -->
+                </div>
+
+                <div class="p-4 bg-slate-50 border-t border-slate-100">
+                    <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div id="total-progress-bar" class="bg-indigo-500 h-full transition-all duration-1000 w-0"></div>
+                    </div>
+                    <p class="mt-2 text-[9px] text-center font-bold text-slate-400 tracking-tighter uppercase">Weekly Progress</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyD-doc3VpTgreIIpSJhLU3BM-nFjTBk42M",
-            authDomain: "poke-battle-8f6b9.firebaseapp.com",
-            projectId: "poke-battle-8f6b9",
-            storageBucket: "poke-battle-8f6b9.firebasestorage.app",
-            messagingSenderId: "1041885914810",
-            appId: "1:1041885914810:web:426d0c25c499b152f88483",
-            measurementId: "G-RGE3SEGTYL"
-        };
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'weekly-list-v2';
+        // --- 設定 ---
+        const firebaseConfig = JSON.parse(__firebase_config);
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-homework-v2';
 
+        // 金曜日(5)から始まる配列
+        const DAYS = ['金', '土', '日', '月', '火', '水', '木'];
+        // 元の曜日インデックス(0=日)を、このアプリのDAYSインデックスに変換するマップ
+        const DAY_MAP = { 5:0, 6:1, 0:2, 1:3, 2:4, 3:5, 4:6 };
+        
+        let currentDayIdx = DAY_MAP[new Date().getDay()];
+        let homeworks = [];
         let currentUser = null;
-        const dayMap = {
-            mon: { name: '月曜日', color: 'indigo' },
-            tue: { name: '火曜日', color: 'emerald' },
-            wed: { name: '水曜日', color: 'amber' },
-            thu: { name: '木曜日', color: 'orange' },
-            fri: { name: '金曜日', color: 'rose' },
-            sat: { name: '土曜日', color: 'blue' },
-            sun: { name: '日曜日', color: 'red' }
-        };
-        const dayKeys = Object.keys(dayMap);
 
-        // UI References
-        const form = document.getElementById('homework-form');
-        const taskInput = document.getElementById('task-input');
-        const daySelect = document.getElementById('day-select');
-        const weekContainer = document.getElementById('week-container');
-        const statusText = document.getElementById('status-text');
-        const statusDot = document.getElementById('status-dot');
-        const toast = document.getElementById('toast');
+        // --- DOM要素 ---
+        const taskListEl = document.getElementById('task-list');
+        const dayNavEl = document.getElementById('day-nav');
+        const taskInputEl = document.getElementById('task-input');
+        const addTaskForm = document.getElementById('add-task-form');
+        const summaryContentEl = document.getElementById('summary-content');
+        const progressBarEl = document.getElementById('total-progress-bar');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const submitBtn = document.getElementById('submit-btn');
+        const btnIconPlus = document.getElementById('btn-icon-plus');
+        const btnIconLoader = document.getElementById('btn-icon-loader');
 
-        // Auth initialization
+        // --- 初期化 ---
         async function init() {
             try {
-                await signInAnonymously(auth);
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        currentUser = user;
-                        statusText.innerText = "同期中";
-                        statusDot.classList.replace('bg-gray-400', 'bg-green-500');
-                        startListening();
-                    }
-                });
-            } catch (err) {
-                console.error(err);
-                showToast("認証エラーが発生しました");
-            }
-        }
-
-        // Realtime Data Sync
-        function startListening() {
-            const homeworkCol = collection(db, 'artifacts', appId, 'public', 'data', 'weekly_tasks');
-            onSnapshot(homeworkCol, (snapshot) => {
-                const tasks = [];
-                snapshot.forEach(doc => tasks.push({ id: doc.id, ...doc.data() }));
-                renderList(tasks);
-            }, (error) => {
-                console.error(error);
-                showToast("通信エラーが発生しました");
-            });
-        }
-
-        // Render functions
-        function renderList(tasks) {
-            weekContainer.innerHTML = '';
-
-            dayKeys.forEach(dayKey => {
-                const dayData = dayMap[dayKey];
-                const dayTasks = tasks.filter(t => t.day === dayKey);
-                
-                const row = document.createElement('div');
-                row.className = "flex flex-col md:flex-row bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100";
-                
-                // Left side: Day Label
-                const sideBar = document.createElement('div');
-                sideBar.className = `md:w-32 bg-${dayData.color}-50 p-4 flex items-center justify-center border-b md:border-b-0 md:border-r border-gray-100`;
-                sideBar.innerHTML = `<span class="font-bold text-${dayData.color}-700">${dayData.name}</span>`;
-                
-                // Right side: Task List
-                const listContent = document.createElement('div');
-                listContent.className = "flex-grow p-4 space-y-3";
-                
-                if (dayTasks.length === 0) {
-                    listContent.innerHTML = `<p class="text-gray-400 text-sm italic">宿題はありません</p>`;
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    dayTasks.forEach(task => {
-                        const taskEl = document.createElement('div');
-                        taskEl.className = "flex items-center justify-between gap-4 group";
-                        
-                        taskEl.innerHTML = `
-                            <div class="flex items-center gap-3 flex-grow min-w-0">
-                                <button class="toggle-btn w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${task.completed ? 'bg-green-500 border-green-500' : 'border-gray-300 hover:border-indigo-500'}" id="check-${task.id}">
-                                    ${task.completed ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>' : ''}
-                                </button>
-                                <span class="text-sm break-all ${task.completed ? 'completed-text' : 'text-gray-700'}">${escapeHtml(task.title)}</span>
-                            </div>
-                            <button class="delete-btn opacity-0 group-hover:opacity-100 p-2 text-gray-400 hover:text-red-500 transition-opacity" title="削除">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m4-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
-                        `;
-
-                        taskEl.querySelector('.toggle-btn').onclick = () => toggleTask(task.id, task.completed);
-                        taskEl.querySelector('.delete-btn').onclick = () => deleteTask(task.id);
-                        
-                        listContent.appendChild(taskEl);
-                    });
+                    await signInAnonymously(auth);
                 }
+            } catch (err) {
+                console.error("Auth Error:", err);
+            }
 
-                row.appendChild(sideBar);
-                row.appendChild(listContent);
-                weekContainer.appendChild(row);
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    loadingOverlay.classList.add('hidden');
+                    startSync();
+                }
+            });
+
+            renderDayNav();
+            updateInputPlaceholder();
+            lucide.createIcons();
+        }
+
+        function renderDayNav() {
+            dayNavEl.innerHTML = '';
+            DAYS.forEach((day, i) => {
+                const btn = document.createElement('button');
+                const isActive = currentDayIdx === i;
+                btn.className = `flex-1 min-w-[44px] py-3 rounded-xl text-sm font-bold transition-all duration-200 ${isActive ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`;
+                btn.textContent = day;
+                btn.onclick = () => {
+                    currentDayIdx = i;
+                    renderDayNav();
+                    renderTasks();
+                    updateInputPlaceholder();
+                };
+                dayNavEl.appendChild(btn);
             });
         }
 
-        // Actions
-        async function addTask(e) {
+        function updateInputPlaceholder() {
+            taskInputEl.placeholder = `${DAYS[currentDayIdx]}曜日の宿題を追加...`;
+        }
+
+        function startSync() {
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'homeworks');
+            onSnapshot(query(colRef), (snapshot) => {
+                homeworks = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                homeworks.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+                renderTasks();
+                renderSummary();
+            });
+        }
+
+        // --- 操作系 (Global Functions) ---
+        window.cycleStatus = async (id, currentStatus) => {
+            const next = { todo: 'doing', doing: 'done', done: 'todo' }[currentStatus];
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'homeworks', id);
+            await updateDoc(docRef, { status: next });
+        };
+
+        window.removeTask = async (id) => {
+            // alert()などの代わりの確認はブラウザ標準confirm
+            if (!confirm('この宿題を削除しますか？')) return;
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'homeworks', id);
+                await deleteDoc(docRef);
+            } catch (e) {
+                console.error("Delete error:", e);
+            }
+        };
+
+        addTaskForm.onsubmit = async (e) => {
             e.preventDefault();
-            const title = taskInput.value.trim();
-            const day = daySelect.value;
-            
-            if (!title || !currentUser) return;
+            const text = taskInputEl.value.trim();
+            if (!text || !currentUser) return;
+
+            submitBtn.disabled = true;
+            btnIconPlus.classList.add('hidden');
+            btnIconLoader.classList.remove('hidden');
 
             try {
-                const homeworkCol = collection(db, 'artifacts', appId, 'public', 'data', 'weekly_tasks');
-                await addDoc(homeworkCol, {
-                    title,
-                    day,
-                    completed: false,
-                    createdAt: serverTimestamp()
+                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'homeworks');
+                await addDoc(colRef, {
+                    text,
+                    day: currentDayIdx,
+                    status: 'todo',
+                    createdAt: Date.now(),
+                    author: currentUser.uid
                 });
-                taskInput.value = '';
-                showToast("追加しました！");
-            } catch (err) {
-                showToast("追加に失敗しました");
+                taskInputEl.value = '';
+            } finally {
+                submitBtn.disabled = false;
+                btnIconPlus.classList.remove('hidden');
+                btnIconLoader.classList.add('hidden');
             }
+        };
+
+        // --- レンダリング ---
+        function renderTasks() {
+            const filtered = homeworks.filter(h => h.day === currentDayIdx);
+            taskListEl.innerHTML = '';
+
+            if (filtered.length === 0) {
+                taskListEl.innerHTML = `
+                    <div class="flex items-center justify-center gap-2 py-4 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                        <i data-lucide="inbox" class="text-slate-300 w-4 h-4"></i>
+                        <p class="text-slate-400 text-xs font-medium italic">${DAYS[currentDayIdx]}曜日の宿題はありません</p>
+                    </div>
+                `;
+            } else {
+                filtered.forEach(item => {
+                    const statusInfo = {
+                        todo: { bg: 'bg-white', border: 'border-slate-200', text: 'text-slate-700', icon: 'circle', iconColor: 'text-slate-300' },
+                        doing: { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', icon: 'loader-2', iconColor: 'text-blue-500 animate-spin-slow' },
+                        done: { bg: 'bg-green-50', border: 'border-green-200', text: 'text-green-600 line-through', icon: 'check-circle-2', iconColor: 'text-green-500' }
+                    }[item.status];
+
+                    const div = document.createElement('div');
+                    div.className = `flex items-center gap-3 p-4 border rounded-2xl shadow-sm transition-all duration-300 ${statusInfo.bg} ${statusInfo.border}`;
+                    div.innerHTML = `
+                        <button onclick="cycleStatus('${item.id}', '${item.status}')" class="p-1">
+                            <i data-lucide="${statusInfo.icon}" class="${statusInfo.iconColor} w-5 h-5"></i>
+                        </button>
+                        <span class="flex-1 font-medium ${statusInfo.text}">${item.text}</span>
+                        <button onclick="removeTask('${item.id}')" class="text-slate-300 hover:text-red-500 p-2 transition-colors">
+                            <i data-lucide="trash-2" class="w-4.5 h-4.5"></i>
+                        </button>
+                    `;
+                    taskListEl.appendChild(div);
+                });
+            }
+            lucide.createIcons();
         }
 
-        async function toggleTask(id, currentStatus) {
-            if (!currentUser) return;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weekly_tasks', id);
-            await updateDoc(docRef, { completed: !currentStatus });
+        function renderSummary() {
+            summaryContentEl.innerHTML = '';
+            DAYS.forEach((dayName, idx) => {
+                const dayTasks = homeworks.filter(h => h.day === idx);
+                const doneCount = dayTasks.filter(t => t.status === 'done').length;
+
+                const daySection = document.createElement('div');
+                daySection.className = 'space-y-1.5';
+                
+                let tasksHtml = dayTasks.length > 0 
+                    ? dayTasks.map(t => `
+                        <div class="flex items-center gap-2 pl-2 border-l-2 border-slate-100">
+                            ${t.status === 'done' 
+                                ? '<i data-lucide="check-circle" class="text-green-500 w-2.5 h-2.5"></i>' 
+                                : `<div class="w-2.5 h-2.5 rounded-full ${t.status === 'doing' ? 'bg-blue-400' : 'bg-slate-200'}"></div>`}
+                            <span class="text-[11px] truncate ${t.status === 'done' ? 'text-slate-300 line-through' : 'text-slate-600'}">${t.text}</span>
+                        </div>
+                    `).join('')
+                    : '<div class="h-px bg-slate-50 w-full"></div>';
+
+                daySection.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold ${dayTasks.length > 0 ? 'text-slate-800' : 'text-slate-300'}">${dayName}曜日</span>
+                        ${dayTasks.length > 0 ? `<span class="text-[10px] text-slate-400 font-medium">${doneCount} / ${dayTasks.length}</span>` : ''}
+                    </div>
+                    <div class="space-y-1">${tasksHtml}</div>
+                `;
+                summaryContentEl.appendChild(daySection);
+            });
+
+            const total = homeworks.length;
+            const doneTotal = homeworks.filter(t => t.status === 'done').length;
+            progressBarEl.style.width = `${total > 0 ? (doneTotal / total) * 100 : 0}%`;
+
+            lucide.createIcons();
         }
 
-        async function deleteTask(id) {
-            if (!currentUser) return;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'weekly_tasks', id);
-            await deleteDoc(docRef);
-            showToast("削除しました");
-        }
-
-        // Helpers
-        function showToast(msg) {
-            toast.innerText = msg;
-            toast.style.opacity = '1';
-            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
-        }
-
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        }
-
-        // Initialize
-        form.addEventListener('submit', addTask);
-        window.onload = init;
-
+        init();
     </script>
 </body>
 </html>
