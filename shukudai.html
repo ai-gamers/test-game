@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HW Planner - Shared Hybrid</title>
+    <title>1週間の宿題 - Shared Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
         .tab-btn.active {
             color: #4f46e5 !important;
             background-color: #ffffff !important;
@@ -26,14 +26,14 @@
             <div class="flex items-center gap-3">
                 <div class="bg-indigo-600 p-2 rounded-lg text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332 0.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332 0.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332 0.477-4.5 1.253" />
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-xl font-black tracking-tight uppercase italic leading-none">HW Shared</h1>
+                    <h1 class="text-xl font-black tracking-tight leading-none text-slate-800">1週間の宿題</h1>
                     <div class="flex items-center gap-2 mt-1">
                         <span id="status-dot" class="status-dot bg-gray-400"></span>
-                        <p id="conn-status" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Initialing...</p>
+                        <p id="conn-status" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">接続中...</p>
                     </div>
                 </div>
             </div>
@@ -48,45 +48,52 @@
         <!-- Tab & Input Section -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
             
+            <!-- Loading Indicator -->
             <div id="loading-overlay" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-10 flex flex-col items-center justify-center gap-2">
                 <div class="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
-                <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-[0.2em]">Syncing Cloud</span>
+                <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-[0.2em]">同期中</span>
             </div>
 
+            <!-- Tabs -->
             <div class="flex bg-slate-100 border-b border-slate-200" id="tabs-container"></div>
 
+            <!-- Single Input -->
             <div class="p-5">
                 <div class="relative">
                     <input 
                         id="hw-input-field" 
                         type="text" 
                         class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all text-slate-800 font-medium"
-                        placeholder="宿題を入力..."
+                        placeholder="宿題の内容を入力..."
                     >
                     <div id="save-msg" class="absolute right-3 top-3.5 text-[10px] font-bold text-emerald-500 uppercase tracking-widest opacity-0 transition-opacity pointer-events-none">
-                        Synced
+                        保存完了
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Summary Section -->
+        <!-- Live Summary Board -->
         <section class="space-y-3">
             <div class="flex items-center gap-2 px-2">
                 <div class="h-1 w-3 bg-indigo-500 rounded-full"></div>
-                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Live Board</h2>
+                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Live Summary</h2>
             </div>
             <div class="bg-slate-900 rounded-2xl p-2 shadow-xl border border-slate-800" id="summary-display"></div>
         </section>
 
+        <footer class="text-[10px] text-center text-gray-400 font-bold uppercase tracking-[0.2em] pt-4">
+            Cloud Shared Homework Planner
+        </footer>
+
         <!-- Confirm Modal -->
         <div id="confirm-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-                <h3 class="text-lg font-bold text-slate-900 mb-2">全クリアの確認</h3>
-                <p class="text-slate-500 text-sm mb-6">共有している全員のデータが消去されます。よろしいですか？</p>
+                <h3 class="text-lg font-bold text-slate-900 mb-2">データの全消去</h3>
+                <p class="text-slate-500 text-sm mb-6">共有している全員の画面から全ての宿題が消去されます。よろしいですか？</p>
                 <div class="flex gap-3">
-                    <button id="modal-cancel-btn" class="flex-1 px-4 py-2 bg-slate-100 rounded-xl font-bold">戻る</button>
-                    <button id="modal-confirm-btn" class="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl font-bold">消去</button>
+                    <button id="modal-cancel-btn" class="flex-1 px-4 py-2 bg-slate-100 rounded-xl font-bold">キャンセル</button>
+                    <button id="modal-confirm-btn" class="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl font-bold">消去する</button>
                 </div>
             </div>
         </div>
@@ -98,7 +105,7 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Firebase Config
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyD-doc3VpTgreIIpSJhLU3BM-nFjTBk42M",
             authDomain: "poke-battle-8f6b9.firebaseapp.com",
@@ -109,14 +116,13 @@
             measurementId: "G-RGE3SEGTYL"
         };
 
-        const DB_KEY_LOCAL = 'hw_backup_local';
+        const DB_KEY_LOCAL = 'hw_backup_local_shared';
         const DAYS = ["金", "土", "日", "月", "火", "水", "木"];
         let homeworkStore = JSON.parse(localStorage.getItem(DB_KEY_LOCAL)) || { "金":"", "土":"", "日":"", "月":"", "火":"", "水":"", "木":"" };
         let activeTab = "金";
         let isOnline = false;
         let debounceTimer;
 
-        // Elements
         const tabsBox = document.getElementById('tabs-container');
         const inputField = document.getElementById('hw-input-field');
         const summaryBox = document.getElementById('summary-display');
@@ -125,7 +131,6 @@
         const statusDot = document.getElementById('status-dot');
         const loadingOverlay = document.getElementById('loading-overlay');
 
-        // UI Logic
         function renderTabs() {
             tabsBox.innerHTML = '';
             DAYS.forEach(day => {
@@ -155,13 +160,12 @@
                 summaryBox.insertAdjacentHTML('beforeend', `
                     <div class="flex items-center gap-4 p-3 border-b border-slate-800 last:border-0 hover:bg-slate-800/30 transition-colors">
                         <div class="w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs ${dayStyle}">${day}</div>
-                        <div class="flex-1 truncate text-sm font-medium ${text ? 'text-slate-100' : 'text-slate-600 italic'}">${text || '---'}</div>
+                        <div class="flex-1 truncate text-sm font-medium ${text ? 'text-slate-100' : 'text-slate-600 italic'}">${text || '未設定'}</div>
                     </div>
                 `);
             });
         }
 
-        // Firebase Logic
         async function startFirebase() {
             try {
                 const app = initializeApp(firebaseConfig);
@@ -170,11 +174,9 @@
                 
                 await signInAnonymously(auth);
                 
-                // Firestore Path
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-id';
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'homework', 'shared');
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-v1';
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'homework_board', 'shared_data');
 
-                // Realtime Sync
                 onSnapshot(docRef, (snap) => {
                     if (snap.exists()) {
                         homeworkStore = snap.data();
@@ -182,13 +184,12 @@
                         renderSummary();
                         if (document.activeElement !== inputField) inputField.value = homeworkStore[activeTab] || "";
                     }
-                    setOnline(true);
+                    updateStatus(true);
                 }, (err) => {
-                    console.error("Firestore Error:", err);
-                    setOnline(false, "Permission Error / Database Off");
+                    console.error("Firestore error:", err);
+                    updateStatus(false, "権限エラーまたはDB未作成");
                 });
 
-                // Update cloud on input
                 inputField.addEventListener('input', (e) => {
                     homeworkStore[activeTab] = e.target.value;
                     localStorage.setItem(DB_KEY_LOCAL, JSON.stringify(homeworkStore));
@@ -200,12 +201,11 @@
                             try {
                                 await setDoc(docRef, homeworkStore);
                                 flashSaved();
-                            } catch (e) { setOnline(false); }
+                            } catch (e) { updateStatus(false); }
                         }
                     }, 500);
                 });
 
-                // Clear logic
                 document.getElementById('modal-confirm-btn').onclick = async () => {
                     DAYS.forEach(d => homeworkStore[d] = "");
                     localStorage.setItem(DB_KEY_LOCAL, JSON.stringify(homeworkStore));
@@ -216,31 +216,30 @@
                 };
 
             } catch (e) {
-                console.error("Firebase Auth Error:", e);
-                setOnline(false, "Network Error");
+                console.error("Auth error:", e);
+                updateStatus(false, "ネットワークエラー");
             }
         }
 
-        function setOnline(online, msg) {
+        function updateStatus(online, msg) {
             isOnline = online;
             loadingOverlay.classList.add('hidden');
             if (online) {
                 statusDot.className = "status-dot bg-emerald-500 animate-pulse";
-                connStatus.innerText = "Cloud Active";
+                connStatus.innerText = "クラウド同期中";
                 connStatus.className = "text-[10px] font-bold text-emerald-500 uppercase tracking-widest";
             } else {
                 statusDot.className = "status-dot bg-amber-500";
-                connStatus.innerText = msg || "Offline Mode (Local Save Only)";
+                connStatus.innerText = msg || "オフライン（本体のみ保存）";
                 connStatus.className = "text-[10px] font-bold text-amber-500 uppercase tracking-widest";
             }
         }
 
         function flashSaved() {
             saveMsg.style.opacity = '1';
-            setTimeout(() => saveMsg.style.opacity = '0', 1000);
+            setTimeout(() => saveMsg.style.opacity = '0', 800);
         }
 
-        // Init
         renderTabs();
         renderSummary();
         inputField.value = homeworkStore[activeTab];
