@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1週間の宿題 - Shared Live</title>
+    <title>1週間の宿題 - Status Shared</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap');
@@ -26,7 +26,7 @@
             <div class="flex items-center gap-3">
                 <div class="bg-indigo-600 p-2 rounded-lg text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332 0.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332 0.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332 0.477-4.5 1.253" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
                 </div>
                 <div>
@@ -45,10 +45,9 @@
             </button>
         </header>
 
-        <!-- Tab & Input Section -->
+        <!-- Main Controller -->
         <section class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
             
-            <!-- Loading Indicator -->
             <div id="loading-overlay" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-10 flex flex-col items-center justify-center gap-2">
                 <div class="animate-spin h-5 w-5 border-2 border-indigo-600 border-t-transparent rounded-full"></div>
                 <span class="text-[10px] font-bold text-indigo-600 uppercase tracking-[0.2em]">同期中</span>
@@ -57,8 +56,18 @@
             <!-- Tabs -->
             <div class="flex bg-slate-100 border-b border-slate-200" id="tabs-container"></div>
 
-            <!-- Single Input -->
-            <div class="p-5">
+            <div class="p-5 space-y-4">
+                <!-- Status Toggle -->
+                <div class="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200 w-fit">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">ステータス:</span>
+                    <div id="status-selector" class="flex gap-1">
+                        <button onclick="updateStatus('todo')" id="btn-status-todo" class="px-3 py-1 text-xs rounded-lg font-bold transition-all border border-transparent">⚫️ 未対応</button>
+                        <button onclick="updateStatus('doing')" id="btn-status-doing" class="px-3 py-1 text-xs rounded-lg font-bold transition-all border border-transparent">🟡 対応中</button>
+                        <button onclick="updateStatus('done')" id="btn-status-done" class="px-3 py-1 text-xs rounded-lg font-bold transition-all border border-transparent">🟢 対応済</button>
+                    </div>
+                </div>
+
+                <!-- Text Input -->
                 <div class="relative">
                     <input 
                         id="hw-input-field" 
@@ -67,32 +76,32 @@
                         placeholder="宿題の内容を入力..."
                     >
                     <div id="save-msg" class="absolute right-3 top-3.5 text-[10px] font-bold text-emerald-500 uppercase tracking-widest opacity-0 transition-opacity pointer-events-none">
-                        保存完了
+                        同期完了
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Live Summary Board -->
+        <!-- Summary List -->
         <section class="space-y-3">
             <div class="flex items-center gap-2 px-2">
                 <div class="h-1 w-3 bg-indigo-500 rounded-full"></div>
-                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Live Summary</h2>
+                <h2 class="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Live Status Board</h2>
             </div>
             <div class="bg-slate-900 rounded-2xl p-2 shadow-xl border border-slate-800" id="summary-display"></div>
         </section>
 
         <footer class="text-[10px] text-center text-gray-400 font-bold uppercase tracking-[0.2em] pt-4">
-            Cloud Shared Homework Planner
+            Firebase Realtime Status Sync
         </footer>
 
         <!-- Confirm Modal -->
         <div id="confirm-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
                 <h3 class="text-lg font-bold text-slate-900 mb-2">データの全消去</h3>
-                <p class="text-slate-500 text-sm mb-6">共有している全員の画面から全ての宿題が消去されます。よろしいですか？</p>
+                <p class="text-slate-500 text-sm mb-6">共有している全員の画面から全ての宿題とステータスが消去されます。よろしいですか？</p>
                 <div class="flex gap-3">
-                    <button id="modal-cancel-btn" class="flex-1 px-4 py-2 bg-slate-100 rounded-xl font-bold">キャンセル</button>
+                    <button id="modal-cancel-btn" class="flex-1 px-4 py-2 bg-slate-100 rounded-xl font-bold text-slate-600">キャンセル</button>
                     <button id="modal-confirm-btn" class="flex-1 px-4 py-2 bg-red-500 text-white rounded-xl font-bold">消去する</button>
                 </div>
             </div>
@@ -116,9 +125,14 @@
             measurementId: "G-RGE3SEGTYL"
         };
 
-        const DB_KEY_LOCAL = 'hw_backup_local_shared';
+        const DB_KEY_LOCAL = 'hw_backup_local_status';
         const DAYS = ["金", "土", "日", "月", "火", "水", "木"];
-        let homeworkStore = JSON.parse(localStorage.getItem(DB_KEY_LOCAL)) || { "金":"", "土":"", "日":"", "月":"", "火":"", "水":"", "木":"" };
+        
+        // Initial state with object per day
+        const defaultState = {};
+        DAYS.forEach(d => defaultState[d] = { text: "", status: "todo" });
+
+        let homeworkStore = JSON.parse(localStorage.getItem(DB_KEY_LOCAL)) || defaultState;
         let activeTab = "金";
         let isOnline = false;
         let debounceTimer;
@@ -145,22 +159,55 @@
         function switchTab(day) {
             activeTab = day;
             renderTabs();
-            inputField.value = homeworkStore[day] || "";
+            // Data handling for backward compatibility
+            if (typeof homeworkStore[day] === 'string') {
+                homeworkStore[day] = { text: homeworkStore[day], status: 'todo' };
+            }
+            inputField.value = homeworkStore[day].text || "";
+            updateStatusUI(homeworkStore[day].status);
             inputField.focus();
+        }
+
+        // Global for status buttons
+        window.updateStatus = (status) => {
+            homeworkStore[activeTab].status = status;
+            updateStatusUI(status);
+            renderSummary();
+            saveWithDebounce();
+        };
+
+        function updateStatusUI(status) {
+            const types = ['todo', 'doing', 'done'];
+            types.forEach(t => {
+                const el = document.getElementById(`btn-status-${t}`);
+                if (t === status) {
+                    el.classList.add('bg-white', 'shadow-sm', 'text-indigo-600', 'border-slate-200');
+                } else {
+                    el.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600', 'border-slate-200');
+                }
+            });
         }
 
         function renderSummary() {
             summaryBox.innerHTML = '';
             DAYS.forEach(day => {
-                const text = (homeworkStore[day] || "").trim();
+                const data = homeworkStore[day];
+                const text = (typeof data === 'string' ? data : data.text).trim();
+                const status = typeof data === 'object' ? data.status : 'todo';
+                
                 let dayStyle = 'text-slate-500 bg-slate-800';
                 if (day === '土') dayStyle = 'text-blue-400 bg-blue-900/40';
                 if (day === '日') dayStyle = 'text-red-400 bg-red-900/40';
 
+                const statusEmoji = status === 'doing' ? '🟡' : (status === 'done' ? '🟢' : '⚫️');
+
                 summaryBox.insertAdjacentHTML('beforeend', `
                     <div class="flex items-center gap-4 p-3 border-b border-slate-800 last:border-0 hover:bg-slate-800/30 transition-colors">
                         <div class="w-8 h-8 flex items-center justify-center rounded-lg font-black text-xs ${dayStyle}">${day}</div>
-                        <div class="flex-1 truncate text-sm font-medium ${text ? 'text-slate-100' : 'text-slate-600 italic'}">${text || '未設定'}</div>
+                        <div class="flex-1 truncate text-sm font-medium flex items-center gap-2">
+                            <span class="text-xs shrink-0">${statusEmoji}</span>
+                            <span class="${text ? 'text-slate-100' : 'text-slate-600 italic'}">${text || '未設定'}</span>
+                        </div>
                     </div>
                 `);
             });
@@ -171,68 +218,68 @@
                 const app = initializeApp(firebaseConfig);
                 const auth = getAuth(app);
                 const db = getFirestore(app);
-                
                 await signInAnonymously(auth);
                 
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-v1';
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'homework_board', 'shared_data');
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'homework-status-shared';
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'homework_board', 'status_data');
 
                 onSnapshot(docRef, (snap) => {
                     if (snap.exists()) {
-                        homeworkStore = snap.data();
+                        const cloudData = snap.data();
+                        // Sync day by day
+                        DAYS.forEach(d => {
+                            if (cloudData[d]) {
+                                homeworkStore[d] = typeof cloudData[d] === 'string' 
+                                    ? { text: cloudData[d], status: 'todo' } 
+                                    : cloudData[d];
+                            }
+                        });
                         localStorage.setItem(DB_KEY_LOCAL, JSON.stringify(homeworkStore));
                         renderSummary();
-                        if (document.activeElement !== inputField) inputField.value = homeworkStore[activeTab] || "";
+                        if (document.activeElement !== inputField) {
+                            inputField.value = homeworkStore[activeTab].text || "";
+                            updateStatusUI(homeworkStore[activeTab].status);
+                        }
                     }
-                    updateStatus(true);
-                }, (err) => {
-                    console.error("Firestore error:", err);
-                    updateStatus(false, "権限エラーまたはDB未作成");
-                });
+                    setOnlineStatus(true);
+                }, (err) => setOnlineStatus(false, "DB Error"));
 
                 inputField.addEventListener('input', (e) => {
-                    homeworkStore[activeTab] = e.target.value;
+                    homeworkStore[activeTab].text = e.target.value;
                     localStorage.setItem(DB_KEY_LOCAL, JSON.stringify(homeworkStore));
                     renderSummary();
-                    
-                    clearTimeout(debounceTimer);
-                    debounceTimer = setTimeout(async () => {
-                        if (isOnline) {
-                            try {
-                                await setDoc(docRef, homeworkStore);
-                                flashSaved();
-                            } catch (e) { updateStatus(false); }
-                        }
-                    }, 500);
+                    saveWithDebounce(docRef);
                 });
 
+                function saveWithDebounce(ref) {
+                    clearTimeout(debounceTimer);
+                    debounceTimer = setTimeout(async () => {
+                        if (isOnline && (ref || docRef)) {
+                            try { await setDoc(ref || docRef, homeworkStore); flashSaved(); } catch (e) {}
+                        }
+                    }, 500);
+                }
+                window.saveWithDebounce = saveWithDebounce;
+
                 document.getElementById('modal-confirm-btn').onclick = async () => {
-                    DAYS.forEach(d => homeworkStore[d] = "");
+                    DAYS.forEach(d => homeworkStore[d] = { text: "", status: "todo" });
                     localStorage.setItem(DB_KEY_LOCAL, JSON.stringify(homeworkStore));
                     renderSummary();
                     inputField.value = "";
+                    updateStatusUI('todo');
                     if (isOnline) await setDoc(docRef, homeworkStore);
                     document.getElementById('confirm-modal').classList.add('hidden');
                 };
 
-            } catch (e) {
-                console.error("Auth error:", e);
-                updateStatus(false, "ネットワークエラー");
-            }
+            } catch (e) { setOnlineStatus(false, "Auth Error"); }
         }
 
-        function updateStatus(online, msg) {
+        function setOnlineStatus(online, msg) {
             isOnline = online;
             loadingOverlay.classList.add('hidden');
-            if (online) {
-                statusDot.className = "status-dot bg-emerald-500 animate-pulse";
-                connStatus.innerText = "クラウド同期中";
-                connStatus.className = "text-[10px] font-bold text-emerald-500 uppercase tracking-widest";
-            } else {
-                statusDot.className = "status-dot bg-amber-500";
-                connStatus.innerText = msg || "オフライン（本体のみ保存）";
-                connStatus.className = "text-[10px] font-bold text-amber-500 uppercase tracking-widest";
-            }
+            statusDot.className = `status-dot ${online ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`;
+            connStatus.innerText = online ? "クラウド同期中" : (msg || "オフライン");
+            connStatus.className = `text-[10px] font-bold uppercase tracking-widest ${online ? 'text-emerald-500' : 'text-amber-500'}`;
         }
 
         function flashSaved() {
@@ -242,7 +289,8 @@
 
         renderTabs();
         renderSummary();
-        inputField.value = homeworkStore[activeTab];
+        inputField.value = homeworkStore[activeTab].text || "";
+        updateStatusUI(homeworkStore[activeTab].status);
         document.getElementById('clear-all-btn').onclick = () => document.getElementById('confirm-modal').classList.remove('hidden');
         document.getElementById('modal-cancel-btn').onclick = () => document.getElementById('confirm-modal').classList.add('hidden');
         
