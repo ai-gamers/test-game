@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポケモンタイプ弱点チェッカー</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 10px; background: #f9f9f9; color: #333; }
+        h1 { text-align: center; color: #222; font-size: 24px; margin-bottom: 20px; }
+        .select-container { display: flex; justify-content: space-between; margin-bottom: 20px; gap: 10px; }
+        select { padding: 12px; font-size: 16px; border-radius: 8px; border: 1px solid #ccc; width: 50%; background: white; cursor: pointer; }
+        .result-section { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h2 { border-left: 5px solid #333; padding-left: 10px; margin-top: 20px; font-size: 16px; color: #444; }
+        .type-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; min-height: 34px; align-items: center; }
+        .type-badge { padding: 6px 12px; border-radius: 6px; color: white; font-weight: bold; font-size: 13px; text-shadow: 1px 1px 1px rgba(0,0,0,0.3); }
+        .empty-message { color: #aaa; font-size: 14px; font-style: italic; }
+        /* ポケモン公式風のタイプカラー */
+        .normal { background: #A8A878; } .fire { background: #F08030; } .water { background: #6890F0; }
+        .grass { background: #78C850; } .electric { background: #F8D030; } .ice { background: #98D8D8; }
+        .fighting { background: #C03028; } .poison { background: #A040A0; } .ground { background: #E0C068; }
+        .flying { background: #A890F0; } .psychic { background: #F85888; } .bug { background: #A8B820; }
+        .rock { background: #B8A038; } .ghost { background: #705898; } .dragon { background: #7038F8; }
+        .dark { background: #705746; } .steel { background: #B8B8D0; } .fairy { background: #EE99AC; }
+    </style>
+</head>
+<body>
+
+    <h1>ポケモンタイプ弱点チェッカー</h1>
+    
+    <div class="select-container">
+        <select id="type1">
+            <option value="">タイプ1（必須）</option>
+        </select>
+        <select id="type2">
+            <option value="">なし（単タイプ）</option>
+        </select>
+    </div>
+
+    <div class="result-section">
+        <h2>🔥 4倍弱点</h2>
+        <div id="weak4" class="type-list"></div>
+
+        <h2>⚡ 2倍弱点</h2>
+        <div id="weak2" class="type-list"></div>
+
+        <h2>🛡️ いまひとつ (0.5倍)</h2>
+        <div id="resist2" class="type-list"></div>
+
+        <h2>🧱 いまひとつ (0.25倍)</h2>
+        <div id="resist4" class="type-list"></div>
+
+        <h2>❌ 効果なし (0倍)</h2>
+        <div id="immune" class="type-list"></div>
+    </div>
+
+    <script>
+        // 18タイプ一覧
+        const types = ["ノーマル", "ほのお", "みず", "くさ", "でんき", "こおり", "かくとう", "どく", "じめん", "ひこう", "エスパー", "むし", "いわ", "ゴースト", "ドラゴン", "あく", "はがね", "フェアリー"];
+        
+        // CSSクラス用マッピング
+        const typeClassMap = {
+            "ノーマル": "normal", "ほのお": "fire", "みず": "water", "くさ": "grass", "でんき": "electric", "こおり": "ice",
+            "かくとう": "fighting", "どく": "poison", "じめん": "ground", "ひこう": "flying", "エスパー": "psychic", "むし": "bug",
+            "いわ": "rock", "ゴースト": "ghost", "ドラゴン": "dragon", "あく": "dark", "はがね": "steel", "フェアリー": "fairy"
+        };
+
+        // 防御側としての相性データ（1倍は省略し、それ以外を定義）
+        const relations = {
+            "ノーマル": { "かくとう": 2, "ゴースト": 0 },
+            "ほのお": { "みず": 2, "じめん": 2, "いわ": 2, "ほのお": 0.5, "くさ": 0.5, "こおり": 0.5, "むし": 0.5, "はがね": 0.5, "フェアリー": 0.5 },
+            "みず": { "くさ": 2, "でんき": 2, "ほのお": 0.5, "みず": 0.5, "こおり": 0.5, "はがね": 0.5 },
+            "くさ": { "ほのお": 2, "こおり": 2, "どく": 2, "ひこう": 2, "むし": 2, "みず": 0.5, "でんき": 0.5, "くさ": 0.5, "じめん": 0.5 },
+            "でんき": { "じめん": 2, "でんき": 0.5, "ひこう": 0.5, "はがね": 0.5 },
+            "こおり": { "ほのお": 2, "かくとう": 2, "いわ": 2, "はがね": 2, "こおり": 0.5 },
+            "かくとう": { "ひこう": 2, "エスパー": 2, "フェアリー": 2, "むし": 0.5, "いわ": 0.5, "あく": 0.5 },
+            "どく": { "じめん": 2, "エスパー": 2, "くさ": 0.5, "かくとう": 0.5, "どく": 0.5, "むし": 0.5, "フェアリー": 0.5 },
+            "じめん": { "みず": 2, "くさ": 2, "こおり": 2, "どく": 0.5, "いわ": 0.5, "でんき": 0 },
+            "ひこう": { "でんき": 2, "こおり": 2, "いわ": 2, "くさ": 0.5, "かくとう": 0.5, "むし": 0.5, "じめん": 0 },
+            "エスパー": { "むし": 2, "ゴースト": 2, "あく": 2, "かくとう": 0.5, "エスパー": 0.5 },
+            "むし": { "ほのお": 2, "ひこう": 2, "いわ": 2, "くさ": 0.5, "かくとう": 0.5, "じめん": 0.5 },
+            "いわ": { "みず": 2, "くさ": 2, "かくとう": 2, "じめん": 2, "はがね": 2, "ノーマル": 0.5, "ほのお": 0.5, "どく": 0.5, "ひこう": 0.5 },
+            "ゴースト": { "ゴースト": 2, "あく": 2, "どく": 0.5, "むし": 0.5, "ノーマル": 0, "かくとう": 0 },
+            "ドラゴン": { "こおり": 2, "ドラゴン": 2, "フェアリー": 2, "ほのお": 0.5, "みず": 0.5, "くさ": 0.5, "でんき": 0.5 },
+            "あく": { "かくとう": 2, "むし": 2, "フェアリー": 2, "ゴースト": 0.5, "あく": 0.5, "エスパー": 0 },
+            "はがね": { "ほのお": 2, "かくとう": 2, "じめん": 2, "ノーマル": 0.5, "くさ": 0.5, "こおり": 0.5, "ひこう": 0.5, "エスパー": 0.5, "むし": 0.5, "いわ": 0.5, "ドラゴン": 0.5, "はがね": 0.5, "フェアリー": 0.5, "どく": 0 },
+            "フェアリー": { "どく": 2, "はがね": 2, "かくとう": 0.5, "むし": 0.5, "あく": 0.5, "ドラゴン": 0 }
+        };
+
+        // セレクトボックスの選択肢を自動生成
+        const t1Select = document.getElementById('type1');
+        const t2Select = document.getElementById('type2');
+
+        types.forEach(type => {
+            const op1 = document.createElement('option');
+            op1.value = type; op1.textContent = type;
+            t1Select.appendChild(op1);
+
+            const op2 = document.createElement('option');
+            op2.value = type; op2.textContent = type;
+            t2Select.appendChild(op2);
+        });
+
+        // 計算と画面更新処理
+        function calculate() {
+            const t1 = t1Select.value;
+            const t2 = t2Select.value;
+
+            // 表示エリアの初期化
+            const lists = {
+                4: document.getElementById('weak4'),
+                2: document.getElementById('weak2'),
+                0.5: document.getElementById('resist2'),
+                0.25: document.getElementById('resist4'),
+                0: document.getElementById('immune')
+            };
+            Object.values(lists).forEach(el => el.innerHTML = '');
+
+            if (!t1) {
+                Object.values(lists).forEach(el => el.innerHTML = '<span class="empty-message">タイプを選択してください</span>');
+                return;
+            }
+
+            // 全攻撃タイプに対して倍率を計算
+            types.forEach(atkType => {
+                let multiplier = 1;
+
+                // タイプ1の倍率を掛ける
+                if (relations[t1] && relations[t1][atkType] !== undefined) {
+                    multiplier *= relations[t1][atkType];
+                }
+                // タイプ2の倍率を掛ける（タイプ1と異なり、かつ選択されている場合）
+                if (t2 && t1 !== t2) {
+                    if (relations[t2] && relations[t2][atkType] !== undefined) {
+                        multiplier *= relations[t2][atkType];
+                    }
+                }
+
+                // 1倍以外の場合、対応する場所にバッジを追加
+                if (multiplier !== 1) {
+                    const badge = document.createElement('span');
+                    badge.className = `type-badge ${typeClassMap[atkType]}`;
+                    badge.textContent = atkType;
+                    lists[multiplier].appendChild(badge);
+                }
+            });
+
+            // 何もない項目に「なし」を表示
+            Object.values(lists).forEach(el => {
+                if (el.children.length === 0) {
+                    el.innerHTML = '<span class="empty-message">なし</span>';
+                }
+            });
+        }
+
+        // イベントリスナーの登録（選択が変わったら自動計算）
+        t1Select.addEventListener('change', calculate);
+        t2Select.addEventListener('change', calculate);
+        
+        // 初回実行
+        calculate();
+    </script>
+</body>
+</html>
